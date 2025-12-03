@@ -1,0 +1,226 @@
+{
+  "name": "mcp-acs-process",
+  "displayName": "MCP ACS Process Manager",
+  "description": "Process management for AI agents with MCP integration and security boundaries. Part of the Digital Defiance AI Capabilities Suite.",
+  "version": "0.1.0",
+  "packageManager": "yarn@4.12.0",
+  "publisher": "DigitalDefiance",
+  "icon": "images/icon.png",
+  "engines": {
+    "vscode": "^1.85.0"
+  },
+  "categories": [
+    "Other",
+    "Testing",
+    "Debuggers"
+  ],
+  "keywords": [
+    "process",
+    "mcp",
+    "ai-agent",
+    "copilot",
+    "process-management",
+    "resource-monitoring",
+    "security"
+  ],
+  "activationEvents": [
+    "onStartupFinished"
+  ],
+  "main": "./out/extension.js",
+  "contributes": {
+    "commands": [
+      {
+        "command": "mcp-process.startProcess",
+        "title": "MCP Process: Start Process",
+        "icon": "$(play)"
+      },
+      {
+        "command": "mcp-process.terminateProcess",
+        "title": "MCP Process: Terminate Process",
+        "icon": "$(stop)"
+      },
+      {
+        "command": "mcp-process.viewProcesses",
+        "title": "MCP Process: View All Processes",
+        "icon": "$(list-tree)"
+      },
+      {
+        "command": "mcp-process.viewStats",
+        "title": "MCP Process: View Process Statistics",
+        "icon": "$(graph)"
+      },
+      {
+        "command": "mcp-process.refreshProcessList",
+        "title": "MCP Process: Refresh Process List",
+        "icon": "$(refresh)"
+      },
+      {
+        "command": "mcp-process.showSecurityBoundaries",
+        "title": "MCP Process: Show Security Boundaries",
+        "icon": "$(shield)"
+      },
+      {
+        "command": "mcp-process.configureAllowlist",
+        "title": "MCP Process: Configure Executable Allowlist",
+        "icon": "$(settings-gear)"
+      }
+    ],
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "mcp-process-explorer",
+          "title": "MCP Process Manager",
+          "icon": "$(server-process)"
+        }
+      ]
+    },
+    "views": {
+      "mcp-process-explorer": [
+        {
+          "id": "mcp-process-list",
+          "name": "Running Processes",
+          "icon": "$(list-tree)",
+          "contextualTitle": "MCP Processes"
+        },
+        {
+          "id": "mcp-process-security",
+          "name": "Security Boundaries",
+          "icon": "$(shield)",
+          "contextualTitle": "Security Configuration"
+        }
+      ]
+    },
+    "menus": {
+      "view/title": [
+        {
+          "command": "mcp-process.refreshProcessList",
+          "when": "view == mcp-process-list",
+          "group": "navigation"
+        },
+        {
+          "command": "mcp-process.startProcess",
+          "when": "view == mcp-process-list",
+          "group": "navigation"
+        }
+      ],
+      "view/item/context": [
+        {
+          "command": "mcp-process.terminateProcess",
+          "when": "view == mcp-process-list && viewItem == process",
+          "group": "inline"
+        },
+        {
+          "command": "mcp-process.viewStats",
+          "when": "view == mcp-process-list && viewItem == process",
+          "group": "inline"
+        }
+      ],
+      "commandPalette": [
+        {
+          "command": "mcp-process.startProcess"
+        },
+        {
+          "command": "mcp-process.terminateProcess",
+          "when": "false"
+        },
+        {
+          "command": "mcp-process.viewProcesses"
+        },
+        {
+          "command": "mcp-process.viewStats",
+          "when": "false"
+        },
+        {
+          "command": "mcp-process.refreshProcessList"
+        },
+        {
+          "command": "mcp-process.showSecurityBoundaries"
+        },
+        {
+          "command": "mcp-process.configureAllowlist"
+        }
+      ]
+    },
+    "configuration": {
+      "title": "MCP Process Manager",
+      "properties": {
+        "mcp-process.serverPath": {
+          "type": "string",
+          "default": "",
+          "description": "Path to MCP process server executable. Leave empty to use bundled server or global installation."
+        },
+        "mcp-process.configPath": {
+          "type": "string",
+          "default": "",
+          "description": "Path to MCP process server configuration file."
+        },
+        "mcp-process.autoStart": {
+          "type": "boolean",
+          "default": true,
+          "description": "Automatically start MCP server when VS Code opens"
+        },
+        "mcp-process.refreshInterval": {
+          "type": "number",
+          "default": 2000,
+          "description": "Process list refresh interval in milliseconds"
+        },
+        "mcp-process.showResourceUsage": {
+          "type": "boolean",
+          "default": true,
+          "description": "Show CPU and memory usage in process list"
+        },
+        "mcp-process.logLevel": {
+          "type": "string",
+          "enum": [
+            "debug",
+            "info",
+            "warn",
+            "error"
+          ],
+          "default": "info",
+          "description": "Log level for MCP process manager"
+        }
+      }
+    }
+  },
+  "scripts": {
+    "vscode:prepublish": "npm run compile",
+    "compile": "tsc -p ./",
+    "watch": "tsc -watch -p ./",
+    "pretest": "npm run compile",
+    "test": "node ./out/test/runTest.js",
+    "test:unit": "npm test -- --grep \"Extension Test Suite|MCP Client Test Suite|Process Tree Provider|Security Tree Provider\"",
+    "test:integration": "npm test -- --grep \"Integration Test Suite\"",
+    "test:e2e": "npm test -- --grep \"E2E Test Suite\"",
+    "test:watch": "npm run watch & npm test",
+    "lint": "eslint src --ext ts",
+    "vsce:login": "vsce login DigitalDefiance",
+    "package": "vsce package --no-dependencies",
+    "publish": "vsce publish --no-dependencies"
+  },
+  "devDependencies": {
+    "@types/glob": "^9.0.0",
+    "@types/mocha": "^10.0.10",
+    "@types/node": "^20.x",
+    "@types/vscode": "^1.85.0",
+    "@vscode/test-electron": "^2.3.8",
+    "@vscode/vsce": "^3.7.1",
+    "glob": "^13.0.0",
+    "mocha": "^11.7.5",
+    "typescript": "^5.3.3"
+  },
+  "dependencies": {
+    "@ai-capabilities-suite/mcp-process": "^0.1.0",
+    "@modelcontextprotocol/sdk": "^0.5.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/digital-defiance/ai-capabilities-suite.git",
+    "directory": "packages/vscode-mcp-acs-process"
+  },
+  "bugs": {
+    "url": "https://github.com/digital-defiance/ai-capabilities-suite/issues"
+  },
+  "homepage": "https://github.com/digital-defiance/ai-capabilities-suite/tree/main/packages/vscode-mcp-acs-process#readme",
+  "license": "MIT"
+}

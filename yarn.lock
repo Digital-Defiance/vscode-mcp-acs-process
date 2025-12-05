@@ -220,18 +220,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@modelcontextprotocol/sdk@npm:^0.5.0":
-  version: 0.5.0
-  resolution: "@modelcontextprotocol/sdk@npm:0.5.0"
-  dependencies:
-    content-type: "npm:^1.0.5"
-    raw-body: "npm:^3.0.0"
-    zod: "npm:^3.23.8"
-  checksum: 10c0/7b1557cb40545c46c945647c561c4604a06028ee95787382195a1754adf5fed1ea8837d01295209de46f6df9169f66e9378320b33543ac09ea2072726f02be6a
-  languageName: node
-  linkType: hard
-
-"@modelcontextprotocol/sdk@npm:^1.23.0":
+"@modelcontextprotocol/sdk@npm:^1.23.0, @modelcontextprotocol/sdk@npm:^1.24.0":
   version: 1.24.3
   resolution: "@modelcontextprotocol/sdk@npm:1.24.3"
   dependencies:
@@ -2626,7 +2615,7 @@ __metadata:
   resolution: "mcp-acs-process@workspace:."
   dependencies:
     "@ai-capabilities-suite/mcp-process": "npm:^0.1.0"
-    "@modelcontextprotocol/sdk": "npm:^0.5.0"
+    "@modelcontextprotocol/sdk": "npm:^1.24.0"
     "@types/glob": "npm:^9.0.0"
     "@types/mocha": "npm:^10.0.10"
     "@types/node": "npm:^20.x"
@@ -4509,13 +4498,6 @@ __metadata:
   peerDependencies:
     zod: ^3.25 || ^4
   checksum: 10c0/2d2cf6ca49752bf3dc5fb37bc8f275eddbbc4020e7958d9c198ea88cd197a5f527459118188a0081b889da6a6474d64c4134cd60951fa70178c125138761c680
-  languageName: node
-  linkType: hard
-
-"zod@npm:^3.23.8":
-  version: 3.25.76
-  resolution: "zod@npm:3.25.76"
-  checksum: 10c0/5718ec35e3c40b600316c5b4c5e4976f7fee68151bc8f8d90ec18a469be9571f072e1bbaace10f1e85cf8892ea12d90821b200e980ab46916a6166a4260a983c
   languageName: node
   linkType: hard
 

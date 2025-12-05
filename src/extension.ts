@@ -1,21 +1,37 @@
 import * as vscode from "vscode";
+import * as path from "path";
+import {
+  LanguageClient,
+  LanguageClientOptions,
+  ServerOptions,
+  TransportKind,
+} from "vscode-languageclient/node";
 import { MCPProcessClient } from "./mcpClient";
 import { ProcessTreeDataProvider } from "./processTreeProvider";
 import { SecurityTreeDataProvider } from "./securityTreeProvider";
+import { ProcessContextProvider } from "./processContextProvider";
 
 let mcpClient: MCPProcessClient | undefined;
-let outputChannel: vscode.OutputChannel;
+let outputChannel: vscode.LogOutputChannel;
 let processTreeProvider: ProcessTreeDataProvider;
 let securityTreeProvider: SecurityTreeDataProvider;
+let processContextProvider: ProcessContextProvider;
 let refreshInterval: NodeJS.Timeout | undefined;
+let languageClient: LanguageClient | undefined;
 
 export async function activate(context: vscode.ExtensionContext) {
-  outputChannel = vscode.window.createOutputChannel("MCP Process Manager");
+  outputChannel = vscode.window.createOutputChannel("MCP Process Manager", {
+    log: true,
+  });
   outputChannel.appendLine("MCP Process Manager extension activating...");
 
-  // Initialize tree data providers
+  // Start Language Server
+  await startLanguageServer(context);
+
+  // Initialize providers
   processTreeProvider = new ProcessTreeDataProvider();
   securityTreeProvider = new SecurityTreeDataProvider();
+  processContextProvider = new ProcessContextProvider();
 
   // Register tree views
   context.subscriptions.push(
@@ -42,6 +58,7 @@ export async function activate(context: vscode.ExtensionContext) {
 
       processTreeProvider.setMCPClient(mcpClient);
       securityTreeProvider.setMCPClient(mcpClient);
+      processContextProvider.setMCPClient(mcpClient);
 
       outputChannel.appendLine("MCP Process server started successfully");
 
@@ -117,6 +134,32 @@ export async function activate(context: vscode.ExtensionContext) {
     )
   );
 
+  // Copilot integration commands
+  context.subscriptions.push(
+    vscode.commands.registerCommand("mcp-process.getContext", async () => {
+      return await processContextProvider.getContext();
+    })
+  );
+
+  context.subscriptions.push(
+    vscode.commands.registerCommand(
+      "mcp-process.getContextString",
+      async () => {
+        const contextString = await processContextProvider.getContextString();
+        vscode.window.showInformationMessage(contextString, { modal: true });
+      }
+    )
+  );
+
+  context.subscriptions.push(
+    vscode.commands.registerCommand(
+      "mcp-process.getAvailableTools",
+      async () => {
+        return processContextProvider.getAvailableTools();
+      }
+    )
+  );
+
   outputChannel.appendLine("MCP Process Manager extension activated");
 }
 
@@ -126,6 +169,9 @@ export async function deactivate() {
   }
   if (mcpClient) {
     mcpClient.stop();
+  }
+  if (languageClient) {
+    await languageClient.stop();
   }
   outputChannel.dispose();
 }
@@ -621,4 +667,105 @@ function getSecurityHTML(config: any): string {
     </body>
     </html>
   `;
+}
+
+async function startLanguageServer(context: vscode.ExtensionContext) {
+  try {
+    const serverModule = context.asAbsolutePath(
+      path.join("out", "languageServer.js")
+    );
+
+    const fs = require("fs");
+    if (!fs.existsSync(serverModule)) {
+      outputChannel.appendLine(
+        `Language server module not found at: ${serverModule}`
+      );
+      outputChannel.appendLine("Skipping language server startup");
+      return;
+    }
+
+    const debugOptions = { execArgv: ["--nolazy", "--inspect=6010"] };
+
+    const serverOptions: ServerOptions = {
+      run: { module: serverModule, transport: TransportKind.ipc },
+      debug: {
+        module: serverModule,
+        transport: TransportKind.ipc,
+        options: debugOptions,
+      },
+    };
+
+    const clientOptions: LanguageClientOptions = {
+      documentSelector: [
+        { scheme: "file", language: "javascript" },
+        { scheme: "file", language: "typescript" },
+        { scheme: "file", language: "javascriptreact" },
+        { scheme: "file", language: "typescriptreact" },
+      ],
+      synchronize: {
+        fileEvents: vscode.workspace.createFileSystemWatcher("**/*.{js,ts}"),
+      },
+      outputChannel: outputChannel,
+    };
+
+    languageClient = new LanguageClient(
+      "mcpProcessLanguageServer",
+      "MCP Process Language Server",
+      serverOptions,
+      clientOptions
+    );
+
+    await languageClient.start();
+
+    outputChannel.appendLine("Language Server started successfully");
+
+    // Register LSP command handlers
+    context.subscriptions.push(
+      vscode.commands.registerCommand(
+        "mcp.process.start",
+        async (uri: string, line: number) => {
+          await startProcess();
+        }
+      )
+    );
+
+    context.subscriptions.push(
+      vscode.commands.registerCommand(
+        "mcp.process.terminate",
+        async (uri: string, line: number) => {
+          const processes = await mcpClient?.listProcesses();
+          if (processes && processes.length > 0) {
+            const items = processes.map((p) => ({
+              label: `PID ${p.pid}: ${p.command}`,
+              pid: p.pid,
+            }));
+            const selected = await vscode.window.showQuickPick(items);
+            if (selected) {
+              await terminateProcess({ pid: selected.pid });
+            }
+          }
+        }
+      )
+    );
+
+    context.subscriptions.push(
+      vscode.commands.registerCommand(
+        "mcp.process.getStats",
+        async (uri: string, line: number) => {
+          await viewProcesses();
+        }
+      )
+    );
+
+    context.subscriptions.push(
+      vscode.commands.registerCommand("mcp.process.list", async () => {
+        await viewProcesses();
+      })
+    );
+  } catch (error) {
+    outputChannel.appendLine(`Failed to start language server: ${error}`);
+    outputChannel.appendLine(
+      "Extension will continue without language server features"
+    );
+  }
 }

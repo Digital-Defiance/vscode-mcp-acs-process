@@ -16,6 +16,24 @@ This package is part of the [AI Capabilities Suite](https://github.com/Digital-D
 - **Process List**: View all running processes in a tree view
 - **Process Statistics**: Detailed resource usage statistics in webview
 
+### 🔍 Language Server Protocol (LSP) Integration
+
+**17 LSP Features for Enhanced Development:**
+
+- **Enhanced Code Lens**: 7 types of inline actions (Launch, Terminate, Send, Get Output, Start Service, Monitor)
+- **Semantic Tokens**: Syntax highlighting for process functions, variables, and properties
+- **Inlay Hints**: Parameter names and type hints (%, MB units)
+- **Signature Help**: Function signatures with parameter documentation
+- **Rename Support**: Safe refactoring of process variables
+- **Call Hierarchy**: Navigate process call chains
+- **Hover Information**: Contextual help for process-related code
+- **Diagnostics**: Real-time security warnings and best practices
+- **Code Completion**: Smart suggestions for process configuration
+- **Code Actions**: Quick fixes and refactoring suggestions
+- **Definition Provider**: Go to process definitions
+- **Document Symbols**: Outline view of processes
+- **11 Custom Commands**: Full MCP tool access for AI agents
+
 ### 🛡️ Security Boundaries
 
 - **Executable Allowlist**: Only pre-approved executables can be launched
@@ -34,7 +52,10 @@ This package is part of the [AI Capabilities Suite](https://github.com/Digital-D
 ### 🤖 AI Integration
 
 - **MCP Protocol**: Works with AI agents like Kiro, Claude Desktop
-- **GitHub Copilot Ready**: Copilot can manage processes
+- **GitHub Copilot Ready**: Copilot can manage processes through LSP
+- **Code Lens Integration**: AI agents see inline process management actions
+- **Diagnostics Integration**: AI agents see security warnings and suggestions
+- **Context Providers**: AI agents have full visibility into running processes
 - **Secure by Default**: AI agents cannot bypass security
 
 ## Installation
@@ -325,27 +346,365 @@ This extension enforces strict security boundaries:
 3. Verify file exists and is readable
 4. Check file permissions
 
+## Language Server Protocol (LSP) Features
+
+The extension provides comprehensive LSP integration with 17 features for enhanced development experience and AI assistance.
+
+### LSP Features Overview
+
+| Feature          | Description                 | AI Benefit                   |
+| ---------------- | --------------------------- | ---------------------------- |
+| Code Lens        | 7 types of inline actions   | AI sees available operations |
+| Hover            | Contextual help on keywords | AI understands process APIs  |
+| Diagnostics      | Security warnings           | AI learns best practices     |
+| Completion       | Smart suggestions           | AI gets accurate completions |
+| Signature Help   | Function signatures         | AI knows parameter types     |
+| Semantic Tokens  | Syntax highlighting         | AI identifies process code   |
+| Inlay Hints      | Parameter/type hints        | AI sees implicit information |
+| Rename           | Refactor variables          | AI can rename safely         |
+| Call Hierarchy   | Navigate call chains        | AI traces process flows      |
+| Definition       | Go to definition            | AI finds declarations        |
+| Document Symbols | Outline view                | AI understands structure     |
+| Code Actions     | Quick fixes                 | AI suggests improvements     |
+
+### 1. Enhanced Code Lens (7 Types)
+
+Inline actions appear directly in your code for common process operations:
+
+```javascript
+const { spawn } = require("child_process");
+
+// 🚀 Launch with MCP | 📊 Monitor Resources
+const child = spawn("node", ["script.js"]);
+
+// 📝 Send via MCP
+child.stdin.write("input data\n");
+
+// 📤 Get Output via MCP
+child.stdout.on("data", (data) => {
+  console.log(data);
+});
+
+// 🛑 Terminate via MCP
+child.kill("SIGTERM");
+
+// 🔄 Start as Service
+const service = spawn("node", ["server.js"], { detached: true });
+```
+
+**Code Lens Types:**
+
+- **🚀 Launch with MCP**: Appears on `spawn()` calls - launches process via MCP
+- **🛑 Terminate via MCP**: Appears on `.kill()` calls - terminates via MCP
+- **📝 Send via MCP**: Appears on `.stdin.write()` - sends input via MCP
+- **📤 Get Output via MCP**: Appears on `.stdout`/`.stderr` - captures output via MCP
+- **🔄 Start as Service**: Appears on detached processes - manages as service
+- **📊 Monitor Resources**: Appears on process loops - tracks CPU/memory
+
+### 2. Semantic Tokens
+
+Syntax highlighting for process-related code helps identify process operations at a glance:
+
+```javascript
+// Functions highlighted: spawn, exec, fork, kill
+const child = spawn("node", ["script.js"]);
+const result = exec("ls -la");
+const worker = fork("worker.js");
+process.kill(child.pid);
+
+// Variables highlighted: pid
+const pid = child.pid;
+
+// Properties highlighted: stdin, stdout, stderr, pid
+child.stdin.write("data");
+child.stdout.on("data", handler);
+child.stderr.pipe(process.stderr);
+```
+
+**Highlighted Elements:**
+
+- Process functions: `spawn`, `exec`, `fork`, `kill`
+- Process variables: `pid`, `child`, `process`
+- Process properties: `stdin`, `stdout`, `stderr`, `pid`
+
+### 3. Inlay Hints
+
+Parameter names and type hints appear inline for better code understanding:
+
+```javascript
+// Parameter hints show what each argument is
+const child = spawn(executable: "node", args: ["script.js"]);
+
+// Type hints show units for resource limits
+const config = {
+  maxCpuPercent: 80%,    // Shows % unit
+  maxMemoryMB: 1024MB,   // Shows MB unit
+  timeout: 30000
+};
+```
+
+**Hint Types:**
+
+- Parameter names for `spawn()`, `exec()`, `fork()`
+- Units for resource limits (%, MB, seconds)
+- Type information for configuration objects
+
+### 4. Signature Help
+
+Function signatures with parameter documentation appear as you type:
+
+```javascript
+// Typing spawn( shows:
+// spawn(executable: string, args: string[], options?: SpawnOptions)
+//       ^^^^^^^^^^^^^^^^^^^
+const child = spawn("node", ["script.js"], { cwd: "/tmp" });
+
+// Typing mcpClient.startProcess( shows:
+// startProcess(config: ProcessConfig): Promise<number>
+//              ^^^^^^^^^^^^^^^^^^^^^^
+const pid = await mcpClient.startProcess({
+  executable: "node",
+  args: ["script.js"],
+});
+```
+
+**Supported Functions:**
+
+- `spawn()`, `exec()`, `fork()` - Node.js child_process
+- `startProcess()`, `terminateProcess()` - MCP client methods
+- `getProcessStats()`, `listProcesses()` - MCP monitoring
+
+### 5. Enhanced Rename Support
+
+Safely rename process-related variables across your entire file:
+
+```javascript
+// Right-click on 'child' and select Rename
+const child = spawn("node", ["script.js"]);
+child.stdout.on("data", (data) => console.log(data));
+child.on("exit", (code) => console.log(`Exit: ${code}`));
+// All instances of 'child' renamed together
+
+// Works for: process, child, pid, worker, etc.
+```
+
+**Renameable Symbols:**
+
+- Process variables: `child`, `process`, `worker`
+- PID variables: `pid`, `processId`
+- Related identifiers across the file
+
+### 6. Call Hierarchy
+
+Navigate process call chains to understand how processes are created and used:
+
+```javascript
+// Right-click on spawn() and select "Show Call Hierarchy"
+function startServer() {
+  return spawn("node", ["server.js"]); // ← Outgoing call
+}
+
+function main() {
+  const server = startServer(); // ← Incoming call
+}
+```
+
+**Navigation:**
+
+- **Incoming Calls**: Find where a process is created
+- **Outgoing Calls**: Find what a process calls
+- Works across functions and files
+
+### 7. Hover Information
+
+Contextual help appears when hovering over process-related keywords:
+
+```javascript
+const child = spawn("node", ["script.js"]);
+//            ^^^^^ Hover shows:
+//            Process Management: spawn
+//            MCP Process Manager provides secure process management.
+```
+
+### 8. Diagnostics
+
+Real-time warnings for security issues and best practices:
+
+```javascript
+// ⚠️ Warning: Consider using child_process.spawn instead of exec for better security
+const result = exec("ls -la");
+
+// ⚠️ Warning: Using shell: true can introduce command injection vulnerabilities
+const child = spawn("node", ["script.js"], { shell: true });
+```
+
+**Diagnostic Types:**
+
+- Security warnings for `exec()` usage
+- Command injection warnings for `shell: true`
+- Best practice suggestions
+
+### 9. Code Completion
+
+Smart suggestions for process configuration and MCP methods:
+
+```javascript
+// Typing spawn("node", [], { shows:
+const child = spawn("node", ["script.js"], {
+  captureOutput: true,        // ← Suggested
+  resourceLimits: { ... },    // ← Suggested
+  timeout: 30000              // ← Suggested
+});
+
+// Typing mcpClient. shows:
+mcpClient.startProcess()      // ← Suggested
+mcpClient.terminateProcess()  // ← Suggested
+mcpClient.getProcessStats()   // ← Suggested
+```
+
+### 10. Code Actions
+
+Quick fixes and refactoring suggestions:
+
+```javascript
+// Diagnostic: "Consider using spawn instead of exec"
+// Quick Fix: "Replace exec with spawn"
+const result = exec("ls -la"); // ← Click lightbulb for fix
+
+// Refactoring: "Convert to MCP Process Manager"
+const child = spawn("node", ["script.js"]); // ← Select and refactor
+```
+
+### Custom Commands
+
+All 11 MCP commands are accessible via LSP:
+
+**Process Lifecycle:**
+
+- `mcp.process.start` - Launch processes
+- `mcp.process.terminate` - Terminate processes
+- `mcp.process.list` - List all processes
+- `mcp.process.getStats` - Get resource statistics
+
+**I/O Management:**
+
+- `mcp.process.sendStdin` - Send input to process
+- `mcp.process.getOutput` - Capture stdout/stderr
+
+**Process Groups:**
+
+- `mcp.process.createGroup` - Create process group
+- `mcp.process.addToGroup` - Add process to group
+- `mcp.process.terminateGroup` - Terminate entire group
+
+**Service Management:**
+
+- `mcp.process.startService` - Start long-running service
+- `mcp.process.stopService` - Stop service
+
+See [COPILOT-INTEGRATION.md](COPILOT-INTEGRATION.md) for detailed AI integration documentation.
+
 ## GitHub Copilot Integration
 
-The MCP Process Manager works seamlessly with GitHub Copilot:
+The MCP Process Manager works seamlessly with GitHub Copilot and other AI assistants through comprehensive LSP integration:
 
-1. **Process Management**: Copilot can start and stop processes
-2. **Resource Monitoring**: Copilot can check resource usage
-3. **Security Awareness**: Copilot understands security boundaries
-4. **Autonomous Operations**: Copilot can manage processes automatically
+### How LSP Features Enhance AI Assistance
 
-### Example Conversations
+1. **Code Lens Awareness**: AI sees all 7 types of inline actions and can invoke them
+2. **Semantic Tokens**: AI identifies process-related code through syntax highlighting
+3. **Inlay Hints**: AI understands parameter types and units without explicit documentation
+4. **Signature Help**: AI knows exact function signatures and parameter types
+5. **Diagnostic Awareness**: AI sees security warnings and suggests fixes automatically
+6. **Call Hierarchy**: AI can trace process creation and usage across files
+7. **Rename Support**: AI can safely refactor process variables
+8. **Code Completion**: AI gets accurate suggestions for process configuration
+9. **Process Context**: AI has full visibility into running processes
+10. **Security Awareness**: AI understands security boundaries and limitations
+11. **Command Access**: AI can invoke all 11 MCP commands through LSP
+
+### Example AI Interactions
+
+**Process Management:**
 
 ```
 You: "Start a Node.js server on port 3000"
-Copilot: [Uses MCP Process Manager to launch node server.js]
+AI: [Sees spawn() code lens, uses mcp.process.start command]
+    ✓ Launched node server.js with PID 12345
 
-You: "Check if any processes are using too much memory"
-Copilot: [Queries process statistics and reports high memory usage]
-
-You: "Kill all Python processes"
-Copilot: [Lists Python processes and terminates them]
+You: "Monitor the server's resource usage"
+AI: [Clicks "📊 Monitor Resources" code lens]
+    ✓ CPU: 15%, Memory: 256MB, Uptime: 2m 30s
 ```
+
+**Security Assistance:**
+
+```
+You: "This code has a security warning, how do I fix it?"
+AI: [Sees diagnostic: "shell: true can introduce command injection"]
+    [Suggests quick fix: "Remove shell: true"]
+
+    Before: spawn("ls", ["-la"], { shell: true })
+    After:  spawn("ls", ["-la"])
+```
+
+**Code Understanding:**
+
+```
+You: "What does this process code do?"
+AI: [Uses semantic tokens to identify spawn, pid, stdout]
+    [Uses call hierarchy to trace process flow]
+    [Uses hover to understand each operation]
+
+    "This code spawns a Node.js process, captures its PID,
+     monitors stdout, and terminates it after 30 seconds."
+```
+
+**Refactoring:**
+
+```
+You: "Rename this process variable to 'worker'"
+AI: [Uses rename support to change all occurrences]
+    ✓ Renamed 'child' to 'worker' in 8 locations
+
+You: "Convert this to use MCP Process Manager"
+AI: [Uses code action: "Convert to MCP Process Manager"]
+    [Wraps spawn() with mcpClient.startProcess()]
+```
+
+**Process Groups:**
+
+```
+You: "Start 3 worker processes and manage them as a group"
+AI: [Uses mcp.process.createGroup]
+    [Uses mcp.process.start for each worker]
+    [Uses mcp.process.addToGroup]
+    ✓ Created group 'workers' with 3 processes
+```
+
+### AI Capabilities with LSP
+
+With the comprehensive LSP integration, AI assistants can:
+
+- **Understand** process code through semantic tokens and hover information
+- **Navigate** process flows using call hierarchy and definitions
+- **Suggest** improvements using diagnostics and code actions
+- **Complete** code accurately with signature help and completions
+- **Refactor** safely using rename support
+- **Execute** operations using all 11 MCP commands
+- **Monitor** resources through code lens actions
+- **Enforce** security by understanding boundaries
+
+### Autonomous Operations
+
+AI assistants can manage processes autonomously:
+
+1. **Launch processes** with proper configuration
+2. **Monitor resources** and detect issues
+3. **Terminate processes** when needed
+4. **Manage process groups** for complex workflows
+5. **Handle I/O** with stdin/stdout operations
+6. **Start services** for long-running tasks
+7. **Apply security best practices** automatically
 
 ## Requirements
 

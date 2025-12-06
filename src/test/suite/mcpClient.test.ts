@@ -56,6 +56,35 @@ suite("MCP Client Test Suite", () => {
     assert.ok(typeof config === "object");
   });
 
+  test("Client should have setServerConfig method", () => {
+    assert.ok(typeof client.setServerConfig === "function");
+  });
+
+  test("setServerConfig should accept SecurityConfig", () => {
+    const securityConfig = {
+      allowedExecutables: ["node", "npm"],
+      blockSetuidExecutables: true,
+      blockShellInterpreters: false,
+      defaultResourceLimits: {
+        maxCpuPercent: 50,
+        maxMemoryMB: 512,
+      },
+      maxConcurrentProcesses: 10,
+      maxProcessLifetime: 3600,
+      allowProcessTermination: true,
+      allowGroupTermination: true,
+      allowForcedTermination: false,
+      allowStdinInput: true,
+      allowOutputCapture: true,
+      enableAuditLog: true,
+      requireConfirmation: false,
+    };
+
+    assert.doesNotThrow(() => {
+      client.setServerConfig(securityConfig);
+    });
+  });
+
   test("stop should not throw when called without start", () => {
     assert.doesNotThrow(() => {
       client.stop();
@@ -92,7 +121,7 @@ suite("MCP Client Test Suite", () => {
       this.timeout(5000);
       const config = vscode.workspace.getConfiguration("mcp-process");
       await config.update(
-        "serverPath",
+        "server.serverPath",
         "/nonexistent/path",
         vscode.ConfigurationTarget.Global
       );
@@ -189,19 +218,19 @@ suite("MCP Client Test Suite", () => {
   suite("Configuration", () => {
     test("Should read serverPath from configuration", () => {
       const config = vscode.workspace.getConfiguration("mcp-process");
-      const serverPath = config.get<string>("serverPath");
+      const serverPath = config.get<string>("server.serverPath");
       assert.ok(serverPath !== undefined);
     });
 
     test("Should read configPath from configuration", () => {
       const config = vscode.workspace.getConfiguration("mcp-process");
-      const configPath = config.get<string>("configPath");
+      const configPath = config.get<string>("server.configPath");
       assert.ok(configPath !== undefined);
     });
 
     test("Should read autoStart from configuration", () => {
       const config = vscode.workspace.getConfiguration("mcp-process");
-      const autoStart = config.get<boolean>("autoStart");
+      const autoStart = config.get<boolean>("server.autoStart");
       assert.ok(typeof autoStart === "boolean");
     });
   });

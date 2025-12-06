@@ -183,20 +183,365 @@ Open VS Code settings (Ctrl+, / Cmd+,) and set:
 
 ## Configuration
 
-### Extension Settings
+The MCP Process Manager provides comprehensive configuration through VS Code's native settings UI. All 50+ settings are organized into 8 logical categories for easy discovery and management.
 
-| Setting                         | Type    | Default | Description                           |
-| ------------------------------- | ------- | ------- | ------------------------------------- |
-| `mcp-process.serverPath`        | string  | ""      | Path to MCP process server executable |
-| `mcp-process.configPath`        | string  | ""      | Path to server configuration file     |
-| `mcp-process.autoStart`         | boolean | true    | Auto-start server on VS Code startup  |
-| `mcp-process.refreshInterval`   | number  | 2000    | Process list refresh interval (ms)    |
-| `mcp-process.showResourceUsage` | boolean | true    | Show CPU/memory in process list       |
-| `mcp-process.logLevel`          | string  | "info"  | Log level (debug, info, warn, error)  |
+### Quick Configuration
+
+**Recommended Approach:** Use VS Code Settings UI (Ctrl+, / Cmd+,) and search for "mcp-process" to configure all settings visually.
+
+**Alternative:** Edit `settings.json` directly for advanced configuration.
+
+### Configuration Categories
+
+#### 1. Server Settings (`mcp-process.server.*`)
+
+Controls server connection and startup behavior.
+
+| Setting         | Type    | Default | Description                                    |
+| --------------- | ------- | ------- | ---------------------------------------------- |
+| `serverPath`    | string  | ""      | Path to server executable (empty = bundled)    |
+| `useConfigFile` | boolean | false   | Use external config file (advanced users only) |
+| `configPath`    | string  | ""      | Path to config file (when useConfigFile=true)  |
+| `autoStart`     | boolean | true    | Auto-start server on VS Code startup           |
+| `logLevel`      | enum    | "info"  | Log level: debug, info, warn, error            |
+
+**Example:**
+
+```json
+{
+  "mcp-process.server.autoStart": true,
+  "mcp-process.server.logLevel": "info"
+}
+```
+
+#### 2. Executable Control (`mcp-process.executable.*`)
+
+Controls which executables can be launched and how arguments are validated.
+
+| Setting                        | Type     | Default | Description                               |
+| ------------------------------ | -------- | ------- | ----------------------------------------- |
+| `allowedExecutables`           | string[] | []      | Allowed executables (paths or patterns)   |
+| `blockSetuidExecutables`       | boolean  | true    | Block setuid/setgid executables           |
+| `blockShellInterpreters`       | boolean  | false   | Block shell interpreters (bash, sh, etc.) |
+| `additionalBlockedExecutables` | string[] | []      | Additional blocked executables            |
+| `maxArgumentCount`             | number   | 100     | Maximum number of arguments               |
+| `maxArgumentLength`            | number   | 4096    | Maximum length of any argument (bytes)    |
+| `blockedArgumentPatterns`      | string[] | []      | Regex patterns to block in arguments      |
+
+**Example - Development Environment:**
+
+```json
+{
+  "mcp-process.executable.allowedExecutables": [
+    "node",
+    "npm",
+    "yarn",
+    "python3",
+    "git"
+  ],
+  "mcp-process.executable.blockShellInterpreters": false,
+  "mcp-process.executable.blockSetuidExecutables": true
+}
+```
+
+**Example - Production Environment:**
+
+```json
+{
+  "mcp-process.executable.allowedExecutables": [
+    "/usr/bin/node",
+    "/usr/bin/python3"
+  ],
+  "mcp-process.executable.blockShellInterpreters": true,
+  "mcp-process.executable.blockSetuidExecutables": true,
+  "mcp-process.executable.blockedArgumentPatterns": [
+    ".*\\|.*",
+    ".*>.*",
+    ".*\\$\\(.*\\).*"
+  ]
+}
+```
+
+#### 3. Resource Limits (`mcp-process.resources.*`)
+
+Controls CPU, memory, and other resource limits for spawned processes.
+
+| Setting                     | Type    | Default | Description                              |
+| --------------------------- | ------- | ------- | ---------------------------------------- |
+| `defaultMaxCpuPercent`      | number  | 50      | Default max CPU usage (0-100)            |
+| `defaultMaxMemoryMB`        | number  | 512     | Default max memory in MB                 |
+| `defaultMaxFileDescriptors` | number  | 1024    | Default max file descriptors             |
+| `defaultMaxCpuTime`         | number  | 300     | Default max CPU time in seconds          |
+| `defaultMaxProcesses`       | number  | 10      | Default max processes in tree            |
+| `maximumMaxCpuPercent`      | number  | 100     | Hard limit on CPU usage                  |
+| `maximumMaxMemoryMB`        | number  | 2048    | Hard limit on memory usage               |
+| `strictResourceEnforcement` | boolean | false   | Terminate immediately on limit violation |
+
+**Example - Generous Limits:**
+
+```json
+{
+  "mcp-process.resources.defaultMaxCpuPercent": 80,
+  "mcp-process.resources.defaultMaxMemoryMB": 2048,
+  "mcp-process.resources.defaultMaxCpuTime": 600,
+  "mcp-process.resources.strictResourceEnforcement": false
+}
+```
+
+**Example - Strict Limits:**
+
+```json
+{
+  "mcp-process.resources.defaultMaxCpuPercent": 25,
+  "mcp-process.resources.defaultMaxMemoryMB": 256,
+  "mcp-process.resources.defaultMaxCpuTime": 60,
+  "mcp-process.resources.strictResourceEnforcement": true
+}
+```
+
+#### 4. Process Limits (`mcp-process.process.*`)
+
+Controls process concurrency and rate limiting.
+
+| Setting                          | Type   | Default | Description                           |
+| -------------------------------- | ------ | ------- | ------------------------------------- |
+| `maxConcurrentProcesses`         | number | 10      | Max concurrent processes (global)     |
+| `maxConcurrentProcessesPerAgent` | number | 5       | Max concurrent processes per agent    |
+| `maxProcessLifetime`             | number | 3600    | Max process lifetime in seconds       |
+| `maxTotalProcesses`              | number | 1000    | Max total processes (server lifetime) |
+| `maxLaunchesPerMinute`           | number | 10      | Max launches per minute per agent     |
+| `maxLaunchesPerHour`             | number | 100     | Max launches per hour per agent       |
+| `rateLimitCooldownSeconds`       | number | 60      | Cooldown after rate limit hit         |
+
+**Example:**
+
+```json
+{
+  "mcp-process.process.maxConcurrentProcesses": 20,
+  "mcp-process.process.maxConcurrentProcessesPerAgent": 10,
+  "mcp-process.process.maxProcessLifetime": 7200,
+  "mcp-process.process.maxLaunchesPerMinute": 20
+}
+```
+
+#### 5. I/O Control (`mcp-process.io.*`)
+
+Controls stdin/stdout behavior and buffer sizes.
+
+| Setting               | Type    | Default | Description                        |
+| --------------------- | ------- | ------- | ---------------------------------- |
+| `allowStdinInput`     | boolean | true    | Allow stdin input to processes     |
+| `allowOutputCapture`  | boolean | true    | Allow stdout/stderr capture        |
+| `maxOutputBufferSize` | number  | 1048576 | Max buffer size per stream (bytes) |
+| `blockBinaryStdin`    | boolean | true    | Block binary data in stdin         |
+
+**Example:**
+
+```json
+{
+  "mcp-process.io.allowStdinInput": true,
+  "mcp-process.io.allowOutputCapture": true,
+  "mcp-process.io.maxOutputBufferSize": 2097152,
+  "mcp-process.io.blockBinaryStdin": true
+}
+```
+
+#### 6. Security Settings (`mcp-process.security.*`)
+
+Controls process termination, confirmation, and access control.
+
+| Setting                          | Type     | Default | Description                               |
+| -------------------------------- | -------- | ------- | ----------------------------------------- |
+| `allowProcessTermination`        | boolean  | true    | Allow agents to terminate processes       |
+| `allowGroupTermination`          | boolean  | true    | Allow agents to terminate groups          |
+| `allowForcedTermination`         | boolean  | false   | Allow forced termination (SIGKILL)        |
+| `requireTerminationConfirmation` | boolean  | false   | Require confirmation for termination      |
+| `requireConfirmation`            | boolean  | false   | Require confirmation for all launches     |
+| `requireConfirmationFor`         | string[] | []      | Executables requiring confirmation        |
+| `autoApproveAfterCount`          | number   | 0       | Auto-approve after N successful launches  |
+| `allowedWorkingDirectories`      | string[] | []      | Allowed working directories               |
+| `blockedWorkingDirectories`      | string[] | []      | Blocked working directories               |
+| `additionalBlockedEnvVars`       | string[] | []      | Additional blocked environment variables  |
+| `allowedEnvVars`                 | string[] | []      | Allowed environment variables (whitelist) |
+| `maxEnvVarCount`                 | number   | 100     | Maximum number of environment variables   |
+
+**Example - High Security:**
+
+```json
+{
+  "mcp-process.security.allowForcedTermination": false,
+  "mcp-process.security.requireConfirmation": true,
+  "mcp-process.security.requireConfirmationFor": ["rm", "dd", "mkfs"],
+  "mcp-process.security.blockedWorkingDirectories": ["/etc", "/root"],
+  "mcp-process.security.allowedEnvVars": ["PATH", "HOME", "USER"]
+}
+```
+
+#### 7. Advanced Security (`mcp-process.security.advanced.*`)
+
+Advanced isolation features (Linux-specific).
+
+| Setting                      | Type     | Default    | Description                                   |
+| ---------------------------- | -------- | ---------- | --------------------------------------------- |
+| `enableChroot`               | boolean  | false      | Enable chroot jail (Unix/Linux)               |
+| `chrootDirectory`            | string   | ""         | Chroot directory path                         |
+| `enableNamespaces`           | boolean  | false      | Enable Linux namespaces                       |
+| `namespacesPid`              | boolean  | false      | Enable PID namespace                          |
+| `namespacesNetwork`          | boolean  | false      | Enable network namespace                      |
+| `namespacesMount`            | boolean  | false      | Enable mount namespace                        |
+| `namespacesUts`              | boolean  | false      | Enable UTS namespace                          |
+| `namespacesIpc`              | boolean  | false      | Enable IPC namespace                          |
+| `namespacesUser`             | boolean  | false      | Enable user namespace                         |
+| `enableSeccomp`              | boolean  | false      | Enable seccomp filtering                      |
+| `seccompProfile`             | enum     | "moderate" | Seccomp profile: strict, moderate, permissive |
+| `blockNetworkAccess`         | boolean  | false      | Block network access                          |
+| `allowedNetworkDestinations` | string[] | []         | Allowed network destinations                  |
+| `blockedNetworkDestinations` | string[] | []         | Blocked network destinations                  |
+| `enableMAC`                  | boolean  | false      | Enable mandatory access control               |
+| `macProfile`                 | string   | ""         | SELinux context or AppArmor profile           |
+| `dropCapabilities`           | string[] | []         | Linux capabilities to drop                    |
+| `readOnlyFilesystem`         | boolean  | false      | Mount filesystem as read-only                 |
+| `tmpfsSize`                  | number   | 64         | Temporary filesystem size in MB               |
+
+**Example - Maximum Isolation (Linux):**
+
+```json
+{
+  "mcp-process.security.advanced.enableNamespaces": true,
+  "mcp-process.security.advanced.namespacesPid": true,
+  "mcp-process.security.advanced.namespacesNetwork": true,
+  "mcp-process.security.advanced.namespacesMount": true,
+  "mcp-process.security.advanced.enableSeccomp": true,
+  "mcp-process.security.advanced.seccompProfile": "strict",
+  "mcp-process.security.advanced.dropCapabilities": [
+    "CAP_NET_RAW",
+    "CAP_SYS_ADMIN"
+  ]
+}
+```
+
+#### 8. Audit & Monitoring (`mcp-process.audit.*`)
+
+Controls audit logging and security alerts.
+
+| Setting                | Type     | Default | Description                         |
+| ---------------------- | -------- | ------- | ----------------------------------- |
+| `enableAuditLog`       | boolean  | true    | Enable audit logging                |
+| `auditLogPath`         | string   | ""      | Audit log file path                 |
+| `auditLogLevel`        | enum     | "info"  | Log level: error, warn, info, debug |
+| `enableSecurityAlerts` | boolean  | false   | Enable real-time security alerts    |
+| `securityAlertWebhook` | string   | ""      | Alert webhook URL                   |
+| `allowedTimeWindows`   | string[] | []      | Allowed time windows (cron syntax)  |
+| `blockedTimeWindows`   | string[] | []      | Blocked time windows (cron syntax)  |
+
+**Example:**
+
+```json
+{
+  "mcp-process.audit.enableAuditLog": true,
+  "mcp-process.audit.auditLogLevel": "info",
+  "mcp-process.audit.enableSecurityAlerts": true,
+  "mcp-process.audit.securityAlertWebhook": "https://hooks.slack.com/services/YOUR/WEBHOOK",
+  "mcp-process.audit.allowedTimeWindows": ["0 9-17 * * 1-5"]
+}
+```
+
+#### 9. UI Preferences (`mcp-process.ui.*`)
+
+Controls UI behavior and display options.
+
+| Setting                      | Type    | Default | Description                            |
+| ---------------------------- | ------- | ------- | -------------------------------------- |
+| `refreshInterval`            | number  | 2000    | Process list refresh interval (ms)     |
+| `showResourceUsage`          | boolean | true    | Show CPU/memory in process list        |
+| `showSecurityWarnings`       | boolean | true    | Show security warnings in UI           |
+| `confirmDangerousOperations` | boolean | true    | Require confirmation for dangerous ops |
+
+**Example:**
+
+```json
+{
+  "mcp-process.ui.refreshInterval": 1000,
+  "mcp-process.ui.showResourceUsage": true,
+  "mcp-process.ui.showSecurityWarnings": true
+}
+```
+
+### Configuration Presets
+
+The extension provides three built-in configuration presets for common use cases:
+
+#### Development Preset
+
+Permissive settings for local development with minimal restrictions.
+
+**Use when:** Developing locally, need flexibility, trust all code
+
+**Apply:** Command Palette → "MCP Process: Apply Configuration Preset" → "Development"
+
+#### Production Preset
+
+Balanced settings for production use with reasonable security.
+
+**Use when:** Running in production, need security without breaking functionality
+
+**Apply:** Command Palette → "MCP Process: Apply Configuration Preset" → "Production"
+
+#### High Security Preset
+
+Strict settings for maximum security with strong isolation.
+
+**Use when:** Handling untrusted code, maximum security required
+
+**Apply:** Command Palette → "MCP Process: Apply Configuration Preset" → "High Security"
+
+### Import/Export Configuration
+
+**Export Configuration:**
+
+1. Open Command Palette (Ctrl+Shift+P / Cmd+Shift+P)
+2. Run "MCP Process: Export Configuration"
+3. Choose save location
+4. Configuration saved as JSON with metadata
+
+**Import Configuration:**
+
+1. Open Command Palette
+2. Run "MCP Process: Import Configuration"
+3. Select configuration JSON file
+4. Review changes and confirm
+5. Settings applied to VS Code
+
+**Note:** Exported configurations include platform metadata. Importing cross-platform configs will show warnings for platform-specific settings.
+
+### Validate Configuration
+
+To check your configuration for errors and conflicts:
+
+1. Open Command Palette
+2. Run "MCP Process: Validate Configuration"
+3. Review validation results in Output panel
+4. Fix any errors or warnings
+5. Re-validate until clean
 
 ### Server Configuration
 
-See the [MCP Process Server documentation](https://github.com/digital-defiance/ai-capabilities-suite/tree/main/packages/mcp-process) for detailed configuration options.
+**Important:** When using the extension, VS Code settings are the primary configuration method. The external config file (`mcp-process-config.json`) is only needed for:
+
+- Running the server standalone (without VS Code)
+- Advanced users who prefer file-based configuration
+- Overriding specific settings programmatically
+
+To use an external config file, set:
+
+```json
+{
+  "mcp-process.server.useConfigFile": true,
+  "mcp-process.server.configPath": "/path/to/mcp-process-config.json"
+}
+```
+
+See the [MCP Process Server documentation](https://github.com/digital-defiance/ai-capabilities-suite/tree/main/packages/mcp-process) for config file format.
 
 **Minimal Configuration:**
 
@@ -299,7 +644,7 @@ This extension enforces strict security boundaries:
 
 1. Check if Node.js is installed: `node --version`
 2. Install MCP server: `npm install -g @ai-capabilities-suite/mcp-process`
-3. Set `mcp-process.serverPath` in settings if needed
+3. Set `mcp-process.server.serverPath` in settings if needed
 4. Check Output panel for errors
 5. Restart VS Code
 
@@ -308,6 +653,13 @@ This extension enforces strict security boundaries:
 **Problem**: "Executable not in allowlist" error
 
 **Solution**:
+
+1. Open VS Code Settings (Ctrl+, / Cmd+,)
+2. Search for "mcp-process.executable.allowedExecutables"
+3. Add the executable to the array
+4. Server will automatically reload with new settings
+
+**Alternative:**
 
 1. Open Command Palette
 2. Run "MCP Process: Configure Executable Allowlist"
@@ -331,20 +683,84 @@ This extension enforces strict security boundaries:
 
 **Solution**:
 
-1. Increase limits in configuration file
-2. Or accept that the process is using too many resources
-3. Check process statistics to see actual usage
+1. Open VS Code Settings
+2. Search for "mcp-process.resources"
+3. Increase `defaultMaxCpuPercent` or `defaultMaxMemoryMB`
+4. Check process statistics to see actual usage
+5. Consider if the process legitimately needs more resources
 
-### Configuration File Not Found
+### Settings Not Taking Effect
 
-**Problem**: "Configuration file not found" error
+**Problem**: Changed settings but behavior hasn't changed
 
 **Solution**:
 
-1. Set `mcp-process.configPath` in VS Code settings
+1. Check if the setting requires server restart (look for "Note: Changes require server restart" in description)
+2. If restart required, click the notification button or run "MCP Process: Restart Server"
+3. Check Output panel for configuration errors
+4. Run "MCP Process: Validate Configuration" to check for issues
+
+### Configuration Validation Errors
+
+**Problem**: Validation shows errors or warnings
+
+**Solution**:
+
+1. Read the error message carefully - it explains what's wrong
+2. Common issues:
+   - `enableChroot` requires `chrootDirectory` to be set
+   - `enableSecurityAlerts` requires `securityAlertWebhook` to be set
+   - Platform-specific settings (namespaces, chroot) only work on Linux/Unix
+3. Fix the settings in VS Code Settings UI
+4. Re-run validation to confirm fixes
+
+### Import Configuration Failed
+
+**Problem**: Cannot import configuration file
+
+**Solution**:
+
+1. Verify the JSON file is valid (use a JSON validator)
+2. Check that the file contains valid setting names
+3. Review warnings about platform-specific settings
+4. If importing from different platform, some settings may not apply
+5. Check Output panel for detailed error messages
+
+### Platform-Specific Features Not Working
+
+**Problem**: Linux namespaces, chroot, or other platform features not working
+
+**Solution**:
+
+1. Verify you're on the correct platform (Linux for namespaces, Unix/Linux for chroot)
+2. Check if you have required permissions (root or capabilities)
+3. Verify kernel support for the feature
+4. Check Output panel for specific error messages
+5. Consider using Docker for consistent cross-platform behavior
+
+### Configuration File Not Found
+
+**Problem**: "Configuration file not found" error (when using `useConfigFile: true`)
+
+**Solution**:
+
+1. Set `mcp-process.server.configPath` in VS Code settings
 2. Use absolute path to configuration file
 3. Verify file exists and is readable
 4. Check file permissions
+5. **Recommended:** Use VS Code settings instead by setting `useConfigFile: false`
+
+### Settings UI Not Showing All Settings
+
+**Problem**: Cannot find certain settings in VS Code Settings UI
+
+**Solution**:
+
+1. Make sure you're searching for "mcp-process" (with hyphen)
+2. Try searching for specific category: "mcp-process.executable", "mcp-process.security", etc.
+3. Check if settings are hidden due to platform (some Linux-only settings won't show on Windows/Mac)
+4. Restart VS Code if settings were just installed
+5. Check that extension is activated (look for MCP Process Manager in Activity Bar)
 
 ## Language Server Protocol (LSP) Features
 

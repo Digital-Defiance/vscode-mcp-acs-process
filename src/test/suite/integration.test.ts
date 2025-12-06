@@ -74,28 +74,60 @@ suite("Integration Test Suite", () => {
     });
 
     test("Should handle configuration changes", async function () {
-      this.timeout(5000);
+      this.timeout(10000);
+
+      // Helper function to wait for config value to change
+      const waitForConfigValue = async (
+        key: string,
+        expectedValue: any,
+        timeout = 2000
+      ): Promise<void> => {
+        const startTime = Date.now();
+        while (Date.now() - startTime < timeout) {
+          const currentValue = vscode.workspace
+            .getConfiguration("mcp-process")
+            .get(key);
+          if (currentValue === expectedValue) {
+            return;
+          }
+          await new Promise((resolve) => setTimeout(resolve, 50));
+        }
+        throw new Error(
+          `Timeout waiting for ${key} to become ${expectedValue}. Current value: ${vscode.workspace
+            .getConfiguration("mcp-process")
+            .get(key)}`
+        );
+      };
 
       const config = vscode.workspace.getConfiguration("mcp-process");
 
       // Change refresh interval
-      const originalInterval = config.get("refreshInterval");
+      const originalInterval = config.get("ui.refreshInterval");
+
       await config.update(
-        "refreshInterval",
+        "ui.refreshInterval",
         5000,
         vscode.ConfigurationTarget.Global
       );
 
-      // Verify change
-      const newInterval = config.get("refreshInterval");
-      assert.strictEqual(newInterval, 2000);
+      // Wait for the value to actually change
+      await waitForConfigValue("ui.refreshInterval", 5000);
+
+      // Verify change - get fresh config object
+      const newInterval = vscode.workspace
+        .getConfiguration("mcp-process")
+        .get("ui.refreshInterval");
+      assert.strictEqual(newInterval, 5000);
 
       // Restore original
       await config.update(
-        "refreshInterval",
+        "ui.refreshInterval",
         originalInterval,
         vscode.ConfigurationTarget.Global
       );
+
+      // Wait for the value to be restored
+      await waitForConfigValue("ui.refreshInterval", originalInterval);
     });
 
     test("Should handle view visibility", async function () {
@@ -134,7 +166,7 @@ suite("Integration Test Suite", () => {
     test("Should handle missing configuration file", async () => {
       const config = vscode.workspace.getConfiguration("mcp-process");
       await config.update(
-        "configPath",
+        "server.configPath",
         "/nonexistent/config.json",
         vscode.ConfigurationTarget.Global
       );
@@ -147,7 +179,7 @@ suite("Integration Test Suite", () => {
         assert.ok(error);
       } finally {
         await config.update(
-          "configPath",
+          "server.configPath",
           undefined,
           vscode.ConfigurationTarget.Global
         );

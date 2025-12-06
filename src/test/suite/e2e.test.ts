@@ -47,6 +47,9 @@ suite("E2E Test Suite - Real MCP Server", () => {
   setup(async function () {
     this.timeout(10000);
 
+    // Set environment variable to enable E2E mode
+    process.env.VSCODE_E2E_TEST = "true";
+
     // Create test configuration
     testConfigPath = path.join(__dirname, "../../../test-e2e-config.json");
     const testConfig = {
@@ -100,25 +103,42 @@ suite("E2E Test Suite - Real MCP Server", () => {
     // Configure VS Code settings for the MCP client to use
     const config = vscode.workspace.getConfiguration("mcp-process");
     await config.update(
-      "serverPath",
+      "server.serverPath",
       mcpServerPath,
       vscode.ConfigurationTarget.Global
     );
     await config.update(
-      "configPath",
+      "server.configPath",
       testConfigPath,
       vscode.ConfigurationTarget.Global
     );
+    await config.update(
+      "server.useConfigFile",
+      true,
+      vscode.ConfigurationTarget.Global
+    );
 
-    // Create MCP client - it will spawn the server using the configured settings
-    mcpClient = new MCPProcessClient(config);
+    // Wait for config to settle
+    await new Promise((resolve) => setTimeout(resolve, 200));
+
+    // Create MCP client with output channel for debugging
+    const outputChannel = vscode.window.createOutputChannel(
+      "E2E Test MCP Client"
+    );
+    mcpClient = new MCPProcessClient(outputChannel);
 
     try {
       await mcpClient.connect();
       // Store reference to the server process that the client spawned
       mcpServerProcess = mcpClient.serverProcess || null;
+
+      // Wait a bit for server to fully initialize
+      await new Promise((resolve) => setTimeout(resolve, 1000));
     } catch (error: any) {
       console.log(`Failed to connect to MCP server: ${error.message}`);
+      outputChannel.appendLine(
+        `Failed to connect to MCP server: ${error.message}`
+      );
       this.skip();
       return;
     }
@@ -126,6 +146,9 @@ suite("E2E Test Suite - Real MCP Server", () => {
 
   teardown(async function () {
     this.timeout(5000);
+
+    // Clean up environment variable
+    delete process.env.VSCODE_E2E_TEST;
 
     // Disconnect client
     if (mcpClient) {
@@ -147,6 +170,24 @@ suite("E2E Test Suite - Real MCP Server", () => {
     if (fs.existsSync(testConfigPath)) {
       fs.unlinkSync(testConfigPath);
     }
+
+    // Reset VS Code settings
+    const config = vscode.workspace.getConfiguration("mcp-process");
+    await config.update(
+      "server.serverPath",
+      undefined,
+      vscode.ConfigurationTarget.Global
+    );
+    await config.update(
+      "server.configPath",
+      undefined,
+      vscode.ConfigurationTarget.Global
+    );
+    await config.update(
+      "server.useConfigFile",
+      undefined,
+      vscode.ConfigurationTarget.Global
+    );
   });
 
   suite("Real Process Lifecycle", () => {

@@ -13,6 +13,9 @@ suite("LSP Integration Test Suite", () => {
   suiteSetup(async function () {
     this.timeout(30000);
 
+    // Set environment variable to enable LSP in test mode
+    process.env.VSCODE_LSP_TEST = "true";
+
     // Ensure extension is activated
     const ext = vscode.extensions.getExtension(
       "DigitalDefiance.mcp-acs-process"
@@ -29,6 +32,9 @@ suite("LSP Integration Test Suite", () => {
   });
 
   suiteTeardown(async () => {
+    // Clean up environment variable
+    delete process.env.VSCODE_LSP_TEST;
+
     // Clean up temp directory
     if (fs.existsSync(testDir)) {
       fs.rmSync(testDir, { recursive: true, force: true });

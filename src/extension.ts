@@ -1,5 +1,6 @@
 import * as vscode from "vscode";
 import * as path from "path";
+import * as fs from "fs";
 import {
   LanguageClient,
   LanguageClientOptions,
@@ -10,14 +11,802 @@ import { MCPProcessClient } from "./mcpClient";
 import { ProcessTreeDataProvider } from "./processTreeProvider";
 import { SecurityTreeDataProvider } from "./securityTreeProvider";
 import { ProcessContextProvider } from "./processContextProvider";
+import { SettingsManager } from "./settingsManager";
+import { setPlatformContext, clearPlatformContext } from "./platformContext";
+import { ErrorHandler } from "./errorHandling";
 
 let mcpClient: MCPProcessClient | undefined;
 let outputChannel: vscode.LogOutputChannel;
 let processTreeProvider: ProcessTreeDataProvider;
 let securityTreeProvider: SecurityTreeDataProvider;
 let processContextProvider: ProcessContextProvider;
+let settingsManager: SettingsManager | undefined;
+let errorHandler: ErrorHandler | undefined;
 let refreshInterval: NodeJS.Timeout | undefined;
 let languageClient: LanguageClient | undefined;
+let pendingRestart = false;
+let statusBarItem: vscode.StatusBarItem | undefined;
+
+/**
+ * Settings that require server restart when changed
+ */
+const RESTART_REQUIRED_SETTINGS = [
+  "server.serverPath",
+  "server.configPath",
+  "server.useConfigFile",
+  "executable.allowedExecutables",
+  "executable.blockSetuidExecutables",
+  "executable.blockShellInterpreters",
+  "executable.additionalBlockedExecutables",
+  "executable.maxArgumentCount",
+  "executable.maxArgumentLength",
+  "executable.blockedArgumentPatterns",
+  "resources.defaultMaxCpuPercent",
+  "resources.defaultMaxMemoryMB",
+  "resources.defaultMaxFileDescriptors",
+  "resources.defaultMaxCpuTime",
+  "resources.defaultMaxProcesses",
+  "resources.maximumMaxCpuPercent",
+  "resources.maximumMaxMemoryMB",
+  "resources.strictResourceEnforcement",
+  "process.maxConcurrentProcesses",
+  "process.maxConcurrentProcessesPerAgent",
+  "process.maxProcessLifetime",
+  "process.maxTotalProcesses",
+  "process.maxLaunchesPerMinute",
+  "process.maxLaunchesPerHour",
+  "process.rateLimitCooldownSeconds",
+  "security.allowProcessTermination",
+  "security.allowGroupTermination",
+  "security.allowForcedTermination",
+  "security.requireTerminationConfirmation",
+  "security.requireConfirmation",
+  "security.requireConfirmationFor",
+  "security.autoApproveAfterCount",
+  "security.allowedWorkingDirectories",
+  "security.blockedWorkingDirectories",
+  "security.additionalBlockedEnvVars",
+  "security.allowedEnvVars",
+  "security.maxEnvVarCount",
+  "security.advanced.enableChroot",
+  "security.advanced.chrootDirectory",
+  "security.advanced.enableNamespaces",
+  "security.advanced.namespacesPid",
+  "security.advanced.namespacesNetwork",
+  "security.advanced.namespacesMount",
+  "security.advanced.namespacesUts",
+  "security.advanced.namespacesIpc",
+  "security.advanced.namespacesUser",
+  "security.advanced.enableSeccomp",
+  "security.advanced.seccompProfile",
+  "security.advanced.blockNetworkAccess",
+  "security.advanced.allowedNetworkDestinations",
+  "security.advanced.blockedNetworkDestinations",
+  "security.advanced.enableMAC",
+  "security.advanced.macProfile",
+  "security.advanced.dropCapabilities",
+  "security.advanced.readOnlyFilesystem",
+  "security.advanced.tmpfsSize",
+  "io.allowStdinInput",
+  "io.allowOutputCapture",
+  "io.maxOutputBufferSize",
+  "io.blockBinaryStdin",
+  "audit.enableAuditLog",
+  "audit.auditLogPath",
+  "audit.auditLogLevel",
+  "audit.enableSecurityAlerts",
+  "audit.securityAlertWebhook",
+  "audit.allowedTimeWindows",
+  "audit.blockedTimeWindows",
+];
+
+/**
+ * Settings that can be applied immediately without restart
+ */
+const IMMEDIATE_SETTINGS = [
+  "server.autoStart",
+  "server.logLevel",
+  "ui.refreshInterval",
+  "ui.showResourceUsage",
+  "ui.showSecurityWarnings",
+  "ui.confirmDangerousOperations",
+];
+
+/**
+ * Check if a configuration change requires server restart
+ */
+function requiresRestart(changes: any): boolean {
+  for (const setting of RESTART_REQUIRED_SETTINGS) {
+    if (changes.affectsConfiguration(`mcp-process.${setting}`)) {
+      return true;
+    }
+  }
+  return false;
+}
+
+/**
+ * Handle configuration changes
+ */
+async function handleConfigurationChange(changes: any): Promise<void> {
+  if (!settingsManager) {
+    return;
+  }
+
+  // Check if restart is required
+  if (requiresRestart(changes)) {
+    pendingRestart = true;
+    showRestartNotification();
+  }
+
+  // Handle immediate settings changes
+  if (changes.affectsConfiguration("mcp-process.ui.refreshInterval")) {
+    startAutoRefresh();
+  }
+
+  if (changes.affectsConfiguration("mcp-process.server.logLevel")) {
+    const config = vscode.workspace.getConfiguration("mcp-process");
+    const logLevel = config.get<string>("server.logLevel", "info");
+    outputChannel.appendLine(`Log level changed to: ${logLevel}`);
+  }
+}
+
+/**
+ * Show restart notification with button
+ */
+function showRestartNotification(): void {
+  // Skip UI notifications in test mode
+  const isTestMode =
+    process.env.VSCODE_TEST_MODE === "true" || process.env.NODE_ENV === "test";
+
+  if (isTestMode) {
+    outputChannel.appendLine(
+      "Configuration change requires restart (test mode - skipping notification)"
+    );
+    return;
+  }
+
+  // Update status bar
+  if (!statusBarItem) {
+    statusBarItem = vscode.window.createStatusBarItem(
+      vscode.StatusBarAlignment.Left,
+      100
+    );
+    statusBarItem.text = "$(warning) MCP Process: Restart Required";
+    statusBarItem.tooltip =
+      "Configuration changes require server restart. Click to restart.";
+    statusBarItem.command = "mcp-process.restartServer";
+  }
+  statusBarItem.show();
+
+  // Show notification
+  vscode.window
+    .showWarningMessage(
+      "MCP Process configuration changed. Server restart required for changes to take effect.",
+      "Restart Now",
+      "Restart Later"
+    )
+    .then((selection) => {
+      if (selection === "Restart Now") {
+        restartServer();
+      }
+    });
+}
+
+/**
+ * Restart the MCP Process server
+ */
+async function restartServer(): Promise<void> {
+  if (!settingsManager) {
+    vscode.window.showErrorMessage("Settings manager not initialized");
+    return;
+  }
+
+  try {
+    outputChannel.appendLine("Restarting MCP Process server...");
+
+    // Stop existing server
+    if (mcpClient) {
+      mcpClient.stop();
+      mcpClient = undefined;
+    }
+
+    // Wait a moment for cleanup
+    await new Promise((resolve) => setTimeout(resolve, 500));
+
+    // Start new server with updated configuration
+    mcpClient = new MCPProcessClient(outputChannel);
+
+    // Generate and pass server configuration from VS Code settings
+    const serverConfig = settingsManager.generateServerConfig();
+    mcpClient.setServerConfig(serverConfig);
+
+    await mcpClient.start();
+
+    // Update providers
+    processTreeProvider.setMCPClient(mcpClient);
+    securityTreeProvider.setMCPClient(mcpClient);
+    processContextProvider.setMCPClient(mcpClient);
+
+    // Clear pending restart flag
+    pendingRestart = false;
+
+    // Hide status bar item
+    if (statusBarItem) {
+      statusBarItem.hide();
+    }
+
+    outputChannel.appendLine("MCP Process server restarted successfully");
+    vscode.window.showInformationMessage(
+      "MCP Process server restarted successfully"
+    );
+
+    // Refresh process list
+    await refreshProcessList();
+  } catch (error: any) {
+    outputChannel.appendLine(`Failed to restart MCP server: ${error}`);
+
+    // Use error handler for better error messages
+    if (errorHandler) {
+      await errorHandler.server.handleServerError(error);
+    } else {
+      vscode.window.showErrorMessage(
+        `Failed to restart MCP Process server: ${error.message || error}`
+      );
+    }
+  }
+}
+
+/**
+ * Apply a configuration preset
+ */
+async function applyConfigurationPreset(): Promise<void> {
+  if (!settingsManager) {
+    vscode.window.showErrorMessage("Settings manager not initialized");
+    return;
+  }
+
+  // Import presets and types from settings manager
+  const settingsModule = await import("./settingsManager.js");
+  const CONFIGURATION_PRESETS = settingsModule.CONFIGURATION_PRESETS;
+  type ConfigurationPreset = (typeof settingsModule.CONFIGURATION_PRESETS)[0];
+
+  // Create quick pick items for each preset
+  interface PresetQuickPickItem extends vscode.QuickPickItem {
+    preset: ConfigurationPreset;
+  }
+
+  const presetItems: PresetQuickPickItem[] = CONFIGURATION_PRESETS.map(
+    (preset: ConfigurationPreset) => ({
+      label: preset.name,
+      description: `Security Level: ${preset.securityLevel.toUpperCase()}`,
+      detail: preset.description,
+      preset,
+    })
+  );
+
+  // Show quick pick
+  const selected = await vscode.window.showQuickPick(presetItems, {
+    placeHolder: "Select a configuration preset to apply",
+    matchOnDescription: true,
+    matchOnDetail: true,
+  });
+
+  if (!selected) {
+    return;
+  }
+
+  try {
+    // Apply the preset (this will show diff and confirmation dialog)
+    const applied = await settingsManager.applyPreset(selected.preset);
+
+    if (applied) {
+      outputChannel.appendLine(
+        `Applied configuration preset: ${selected.preset.name}`
+      );
+    } else {
+      outputChannel.appendLine("Preset application cancelled by user");
+    }
+  } catch (error: any) {
+    outputChannel.appendLine(
+      `Failed to apply preset: ${error.message || error}`
+    );
+    vscode.window.showErrorMessage(
+      `Failed to apply preset: ${error.message || error}`
+    );
+  }
+}
+
+/**
+ * Export configuration to file
+ */
+async function exportConfiguration(): Promise<void> {
+  if (!settingsManager) {
+    vscode.window.showErrorMessage("Settings manager not initialized");
+    return;
+  }
+
+  let uri: vscode.Uri | undefined;
+
+  try {
+    // Generate configuration JSON
+    const configJson = await settingsManager.exportConfiguration();
+
+    // Show save dialog
+    uri = await vscode.window.showSaveDialog({
+      defaultUri: vscode.Uri.file("mcp-process-config.json"),
+      filters: {
+        "JSON Files": ["json"],
+        "All Files": ["*"],
+      },
+      saveLabel: "Export Configuration",
+      title: "Export MCP Process Configuration",
+    });
+
+    if (!uri) {
+      return;
+    }
+
+    // Write to file
+    await vscode.workspace.fs.writeFile(uri, Buffer.from(configJson, "utf8"));
+
+    outputChannel.appendLine(`Configuration exported to: ${uri.fsPath}`);
+    vscode.window.showInformationMessage(
+      `Configuration exported successfully to ${uri.fsPath}`
+    );
+  } catch (error: any) {
+    outputChannel.appendLine(
+      `Failed to export configuration: ${error.message || error}`
+    );
+
+    // Use error handler for better error messages
+    if (errorHandler) {
+      await errorHandler.file.handleFileError(
+        uri?.fsPath || "unknown",
+        error,
+        "write"
+      );
+    } else {
+      vscode.window.showErrorMessage(
+        `Failed to export configuration: ${error.message || error}`
+      );
+    }
+  }
+}
+
+/**
+ * Import configuration from file
+ */
+async function importConfiguration(): Promise<void> {
+  if (!settingsManager) {
+    vscode.window.showErrorMessage("Settings manager not initialized");
+    return;
+  }
+
+  let uris: vscode.Uri[] | undefined;
+
+  try {
+    // Show open dialog
+    uris = await vscode.window.showOpenDialog({
+      canSelectFiles: true,
+      canSelectFolders: false,
+      canSelectMany: false,
+      filters: {
+        "JSON Files": ["json"],
+        "All Files": ["*"],
+      },
+      openLabel: "Import Configuration",
+      title: "Import MCP Process Configuration",
+    });
+
+    if (!uris || uris.length === 0) {
+      return;
+    }
+
+    const uri = uris[0];
+
+    // Read file
+    const fileContent = await vscode.workspace.fs.readFile(uri);
+    const configJson = Buffer.from(fileContent).toString("utf8");
+
+    // Import configuration (this will validate and show warnings)
+    await settingsManager.importConfiguration(configJson);
+
+    outputChannel.appendLine(`Configuration imported from: ${uri.fsPath}`);
+  } catch (error: any) {
+    outputChannel.appendLine(
+      `Failed to import configuration: ${error.message || error}`
+    );
+
+    // Use error handler for better error messages
+    if (errorHandler) {
+      await errorHandler.file.handleFileError(
+        uris?.[0]?.fsPath || "unknown",
+        error,
+        "read"
+      );
+    } else {
+      vscode.window.showErrorMessage(
+        `Failed to import configuration: ${error.message || error}`
+      );
+    }
+  }
+}
+
+/**
+ * Check for first run and show welcome experience
+ */
+async function checkFirstRunExperience(
+  context: vscode.ExtensionContext
+): Promise<void> {
+  // Check if this is the first run
+  const hasSeenWelcome = context.globalState.get<boolean>(
+    "mcp-process.hasSeenWelcome",
+    false
+  );
+
+  if (hasSeenWelcome) {
+    // Not first run, skip welcome experience
+    return;
+  }
+
+  // Check if user has configured any settings
+  const config = vscode.workspace.getConfiguration("mcp-process");
+  const hasConfiguredSettings = isConfigurationCustomized(config);
+
+  if (hasConfiguredSettings) {
+    // User has already configured settings, mark as seen and skip
+    await context.globalState.update("mcp-process.hasSeenWelcome", true);
+    return;
+  }
+
+  // This is the first run with no custom settings - show welcome experience
+  outputChannel.appendLine("First run detected - showing welcome experience");
+
+  // Show welcome notification with preset options
+  const selection = await vscode.window.showInformationMessage(
+    "Welcome to MCP Process Manager! 🚀\n\n" +
+      "To get started, you can apply a configuration preset optimized for your use case, " +
+      "or configure settings manually.\n\n" +
+      "Presets provide pre-configured security and resource settings:\n" +
+      "• Development: Permissive settings for local development\n" +
+      "• Production: Balanced settings for production use\n" +
+      "• High Security: Strict settings for maximum security",
+    { modal: false },
+    "Apply Development Preset",
+    "Apply Production Preset",
+    "Apply High Security Preset",
+    "Configure Manually",
+    "Skip"
+  );
+
+  // Mark as seen regardless of selection
+  await context.globalState.update("mcp-process.hasSeenWelcome", true);
+
+  if (!selection || selection === "Skip") {
+    outputChannel.appendLine("Welcome experience skipped by user");
+    return;
+  }
+
+  if (selection === "Configure Manually") {
+    // Open settings UI
+    outputChannel.appendLine("Opening settings UI for manual configuration");
+    await vscode.commands.executeCommand(
+      "workbench.action.openSettings",
+      "mcp-process"
+    );
+    return;
+  }
+
+  // User selected a preset - apply it
+  if (!settingsManager) {
+    vscode.window.showErrorMessage("Settings manager not initialized");
+    return;
+  }
+
+  try {
+    // Import presets from settings manager
+    const settingsModule = await import("./settingsManager.js");
+    const CONFIGURATION_PRESETS = settingsModule.CONFIGURATION_PRESETS;
+
+    // Find the selected preset
+    let selectedPreset;
+    if (selection === "Apply Development Preset") {
+      selectedPreset = CONFIGURATION_PRESETS.find(
+        (p) => p.name === "Development"
+      );
+    } else if (selection === "Apply Production Preset") {
+      selectedPreset = CONFIGURATION_PRESETS.find(
+        (p) => p.name === "Production"
+      );
+    } else if (selection === "Apply High Security Preset") {
+      selectedPreset = CONFIGURATION_PRESETS.find(
+        (p) => p.name === "High Security"
+      );
+    }
+
+    if (!selectedPreset) {
+      vscode.window.showErrorMessage("Selected preset not found");
+      return;
+    }
+
+    outputChannel.appendLine(`Applying preset: ${selectedPreset.name}`);
+
+    // Apply the preset (this will show diff and confirmation dialog)
+    const applied = await settingsManager.applyPreset(selectedPreset);
+
+    if (applied) {
+      outputChannel.appendLine(
+        `Successfully applied ${selectedPreset.name} preset`
+      );
+      vscode.window.showInformationMessage(
+        `${selectedPreset.name} preset applied successfully! You can customize settings anytime in VS Code Settings.`
+      );
+    } else {
+      outputChannel.appendLine("Preset application cancelled by user");
+    }
+  } catch (error: any) {
+    outputChannel.appendLine(
+      `Failed to apply preset: ${error.message || error}`
+    );
+    vscode.window.showErrorMessage(
+      `Failed to apply preset: ${error.message || error}`
+    );
+  }
+}
+
+/**
+ * Check if the user has customized any MCP Process settings
+ */
+function isConfigurationCustomized(
+  config: vscode.WorkspaceConfiguration
+): boolean {
+  // Check a few key settings to see if they've been customized from defaults
+  // If any of these have non-default values, we consider the configuration customized
+
+  // Check executable settings
+  const allowedExecutables = config.get<string[]>(
+    "executable.allowedExecutables",
+    []
+  );
+  if (allowedExecutables.length > 0) {
+    return true;
+  }
+
+  // Check if blockShellInterpreters has been explicitly set to true (default is false)
+  const blockShellInterpreters = config.get<boolean>(
+    "executable.blockShellInterpreters"
+  );
+  if (blockShellInterpreters === true) {
+    return true;
+  }
+
+  // Check if any resource limits have been customized
+  const defaultMaxCpuPercent = config.get<number>(
+    "resources.defaultMaxCpuPercent"
+  );
+  if (defaultMaxCpuPercent !== undefined && defaultMaxCpuPercent !== 50) {
+    return true;
+  }
+
+  const defaultMaxMemoryMB = config.get<number>("resources.defaultMaxMemoryMB");
+  if (defaultMaxMemoryMB !== undefined && defaultMaxMemoryMB !== 512) {
+    return true;
+  }
+
+  // Check if any advanced security features have been enabled
+  const enableChroot = config.get<boolean>("security.advanced.enableChroot");
+  if (enableChroot === true) {
+    return true;
+  }
+
+  const enableNamespaces = config.get<boolean>(
+    "security.advanced.enableNamespaces"
+  );
+  if (enableNamespaces === true) {
+    return true;
+  }
+
+  const enableSeccomp = config.get<boolean>("security.advanced.enableSeccomp");
+  if (enableSeccomp === true) {
+    return true;
+  }
+
+  // Check if audit settings have been customized
+  const enableAuditLog = config.get<boolean>("audit.enableAuditLog");
+  if (enableAuditLog === false) {
+    // Default is true, so false means customized
+    return true;
+  }
+
+  // Check if confirmation is required (default is false)
+  const requireConfirmation = config.get<boolean>(
+    "security.requireConfirmation"
+  );
+  if (requireConfirmation === true) {
+    return true;
+  }
+
+  // No customizations detected
+  return false;
+}
+
+/**
+ * Validate current configuration
+ */
+async function validateConfiguration(): Promise<void> {
+  if (!settingsManager) {
+    vscode.window.showErrorMessage("Settings manager not initialized");
+    return;
+  }
+
+  try {
+    // Run validation
+    const result = settingsManager.validateConfiguration();
+
+    // Show results in output panel
+    outputChannel.clear();
+    outputChannel.show(true);
+
+    outputChannel.appendLine("=".repeat(80));
+    outputChannel.appendLine("MCP Process Configuration Validation");
+    outputChannel.appendLine("=".repeat(80));
+    outputChannel.appendLine("");
+
+    if (result.valid) {
+      outputChannel.appendLine("✅ Configuration is valid!");
+      outputChannel.appendLine("");
+
+      if (result.warnings.length > 0) {
+        outputChannel.appendLine(
+          `⚠️  Found ${result.warnings.length} warning(s):`
+        );
+        outputChannel.appendLine("");
+
+        for (const warning of result.warnings) {
+          outputChannel.appendLine(
+            `  [${warning.severity.toUpperCase()}] ${warning.setting}`
+          );
+          outputChannel.appendLine(`    ${warning.message}`);
+          outputChannel.appendLine("");
+        }
+      } else {
+        outputChannel.appendLine("No warnings found.");
+      }
+
+      vscode.window.showInformationMessage(
+        result.warnings.length > 0
+          ? `Configuration is valid with ${result.warnings.length} warning(s). Check output for details.`
+          : "Configuration is valid with no warnings!"
+      );
+    } else {
+      outputChannel.appendLine("❌ Configuration has errors!");
+      outputChannel.appendLine("");
+
+      outputChannel.appendLine(`Found ${result.errors.length} error(s):`);
+      outputChannel.appendLine("");
+
+      for (const error of result.errors) {
+        outputChannel.appendLine(`  ❌ ${error.setting}`);
+        outputChannel.appendLine(`    ${error.message}`);
+        if (error.suggestion) {
+          outputChannel.appendLine(`    💡 Suggestion: ${error.suggestion}`);
+        }
+        outputChannel.appendLine("");
+      }
+
+      if (result.warnings.length > 0) {
+        outputChannel.appendLine("");
+        outputChannel.appendLine(
+          `Also found ${result.warnings.length} warning(s):`
+        );
+        outputChannel.appendLine("");
+
+        for (const warning of result.warnings) {
+          outputChannel.appendLine(
+            `  [${warning.severity.toUpperCase()}] ${warning.setting}`
+          );
+          outputChannel.appendLine(`    ${warning.message}`);
+          outputChannel.appendLine("");
+        }
+      }
+
+      vscode.window
+        .showErrorMessage(
+          `Configuration has ${result.errors.length} error(s). Check output for details.`,
+          "Show Output"
+        )
+        .then((selection) => {
+          if (selection === "Show Output") {
+            outputChannel.show();
+          }
+        });
+    }
+
+    outputChannel.appendLine("=".repeat(80));
+  } catch (error: any) {
+    outputChannel.appendLine(
+      `Failed to validate configuration: ${error.message || error}`
+    );
+    vscode.window.showErrorMessage(
+      `Failed to validate configuration: ${error.message || error}`
+    );
+  }
+}
+
+/**
+ * Add this MCP server to the workspace mcp.json configuration
+ */
+async function configureMcpServer(): Promise<void> {
+  const workspaceFolders = vscode.workspace.workspaceFolders;
+  if (!workspaceFolders || workspaceFolders.length === 0) {
+    const choice = await vscode.window.showWarningMessage(
+      "No workspace folder open. Would you like to add the MCP server to your user settings instead?",
+      "Add to User Settings",
+      "Cancel"
+    );
+    if (choice === "Add to User Settings") {
+      await vscode.commands.executeCommand("workbench.action.openSettingsJson");
+      vscode.window.showInformationMessage(
+        "Add the MCP server configuration manually. See the extension README for details."
+      );
+    }
+    return;
+  }
+
+  const workspaceFolder = workspaceFolders[0];
+  const vscodePath = path.join(workspaceFolder.uri.fsPath, ".vscode");
+  const mcpJsonPath = path.join(vscodePath, "mcp.json");
+
+  // Ensure .vscode directory exists
+  if (!fs.existsSync(vscodePath)) {
+    fs.mkdirSync(vscodePath, { recursive: true });
+  }
+
+  // Read existing mcp.json or create new one
+  let mcpConfig: { servers?: Record<string, any> } = { servers: {} };
+  if (fs.existsSync(mcpJsonPath)) {
+    try {
+      const content = fs.readFileSync(mcpJsonPath, "utf8");
+      mcpConfig = JSON.parse(content);
+      if (!mcpConfig.servers) {
+        mcpConfig.servers = {};
+      }
+    } catch (error) {
+      outputChannel.appendLine(`Error reading mcp.json: ${error}`);
+    }
+  }
+
+  // Add our server configuration
+  const serverName = "mcp-process";
+  if (mcpConfig.servers && mcpConfig.servers[serverName]) {
+    const choice = await vscode.window.showWarningMessage(
+      `MCP server "${serverName}" is already configured. Do you want to replace it?`,
+      "Replace",
+      "Cancel"
+    );
+    if (choice !== "Replace") {
+      return;
+    }
+  }
+
+  mcpConfig.servers = mcpConfig.servers || {};
+  mcpConfig.servers[serverName] = {
+    type: "stdio",
+    command: "npx",
+    args: ["-y", "@ai-capabilities-suite/mcp-process"],
+  };
+
+  // Write the updated configuration
+  fs.writeFileSync(mcpJsonPath, JSON.stringify(mcpConfig, null, 2));
+
+  // Open the file to show the user
+  const doc = await vscode.workspace.openTextDocument(mcpJsonPath);
+  await vscode.window.showTextDocument(doc);
+
+  vscode.window.showInformationMessage(
+    `MCP Process Manager server added to ${mcpJsonPath}. Restart the MCP server to use it with Copilot.`
+  );
+}
 
 export async function activate(context: vscode.ExtensionContext) {
   outputChannel = vscode.window.createOutputChannel("MCP Process Manager", {
@@ -25,8 +814,468 @@ export async function activate(context: vscode.ExtensionContext) {
   });
   outputChannel.appendLine("MCP Process Manager extension activating...");
 
-  // Start Language Server
+  // Check if we're running in test mode
+  const isTestMode =
+    process.env.VSCODE_TEST_MODE === "true" ||
+    process.env.NODE_ENV === "test" ||
+    context.extensionMode === vscode.ExtensionMode.Test;
+
+  // Check if LSP tests are running (they need the language server)
+  const isLSPTest = process.env.VSCODE_LSP_TEST === "true";
+
+  if (isTestMode && !isLSPTest) {
+    outputChannel.appendLine(
+      "Running in test mode - skipping server initialization"
+    );
+  }
+
+  // Register MCP server definition provider (for future MCP protocol support)
+  try {
+    const mcpProviderId = "mcp-acs-process.mcp-provider";
+    const mcpProvider: vscode.McpServerDefinitionProvider = {
+      provideMcpServerDefinitions: async (token) => {
+        const config = vscode.workspace.getConfiguration("mcp-process");
+        const serverPath = config.get<string>("server.serverPath", "");
+        const command = serverPath || "npx";
+        const args = serverPath
+          ? []
+          : ["-y", "@ai-capabilities-suite/mcp-process"];
+
+        return [
+          new vscode.McpStdioServerDefinition(
+            "MCP Process Manager",
+            command,
+            args
+          ),
+        ];
+      },
+      resolveMcpServerDefinition: async (server, token) => {
+        return server;
+      },
+    };
+
+    context.subscriptions.push(
+      vscode.lm.registerMcpServerDefinitionProvider(mcpProviderId, mcpProvider)
+    );
+    outputChannel.appendLine("MCP server definition provider registered");
+  } catch (error) {
+    outputChannel.appendLine(
+      `MCP provider registration skipped (API not available): ${error}`
+    );
+  }
+
+  // Register chat participant for Copilot integration
+  const participant = vscode.chat.createChatParticipant(
+    "mcp-acs-process.participant",
+    async (request, context, stream, token) => {
+      if (!mcpClient) {
+        stream.markdown(
+          "MCP Process Manager is not running. Please start it first."
+        );
+        return;
+      }
+
+      const prompt = request.prompt;
+      stream.markdown(`Processing: ${prompt}\n\n`);
+
+      if (prompt.includes("start") || prompt.includes("launch")) {
+        stream.markdown("Starting process...");
+      } else if (prompt.includes("list") || prompt.includes("show")) {
+        const processes = await mcpClient.listProcesses();
+        stream.markdown(`Found ${processes.length} running processes`);
+      } else if (prompt.includes("terminate") || prompt.includes("kill")) {
+        stream.markdown("Terminating process...");
+      } else {
+        stream.markdown(
+          "Available commands:\n- Start process\n- List processes\n- Terminate process\n- View statistics"
+        );
+      }
+    }
+  );
+
+  context.subscriptions.push(participant);
+
+  // Register language model tools
+  try {
+    const tools = [
+      {
+        name: "process_start",
+        tool: {
+          description: "Start a new process with security boundaries",
+          inputSchema: {
+            type: "object",
+            properties: {
+              executable: { type: "string", description: "Executable to run" },
+              args: {
+                type: "array",
+                items: { type: "string" },
+                description: "Arguments",
+              },
+            },
+            required: ["executable"],
+          },
+          invoke: async (
+            options: vscode.LanguageModelToolInvocationOptions<any>,
+            token: vscode.CancellationToken
+          ) => {
+            await startProcess();
+            return new vscode.LanguageModelToolResult([
+              new vscode.LanguageModelTextPart("Process started"),
+            ]);
+          },
+        },
+      },
+      {
+        name: "process_list",
+        tool: {
+          description: "List all running managed processes",
+          inputSchema: { type: "object", properties: {} },
+          invoke: async (
+            options: vscode.LanguageModelToolInvocationOptions<any>,
+            token: vscode.CancellationToken
+          ) => {
+            await viewProcesses();
+            return new vscode.LanguageModelToolResult([
+              new vscode.LanguageModelTextPart("Processes listed"),
+            ]);
+          },
+        },
+      },
+      {
+        name: "process_terminate",
+        tool: {
+          description: "Terminate a running process",
+          inputSchema: {
+            type: "object",
+            properties: {
+              pid: { type: "number", description: "Process ID" },
+            },
+            required: ["pid"],
+          },
+          invoke: async (
+            options: vscode.LanguageModelToolInvocationOptions<any>,
+            token: vscode.CancellationToken
+          ) => {
+            const pid = options.input.pid;
+            await terminateProcess({ pid });
+            return new vscode.LanguageModelToolResult([
+              new vscode.LanguageModelTextPart(`Process ${pid} terminated`),
+            ]);
+          },
+        },
+      },
+      {
+        name: "process_get_stats",
+        tool: {
+          description: "Get resource usage statistics for a process",
+          inputSchema: {
+            type: "object",
+            properties: {
+              pid: { type: "number", description: "Process ID" },
+            },
+            required: ["pid"],
+          },
+          invoke: async (
+            options: vscode.LanguageModelToolInvocationOptions<any>,
+            token: vscode.CancellationToken
+          ) => {
+            const pid = options.input.pid;
+            await viewStats({ pid });
+            return new vscode.LanguageModelToolResult([
+              new vscode.LanguageModelTextPart(`Stats for process ${pid}`),
+            ]);
+          },
+        },
+      },
+      {
+        name: "process_get_output",
+        tool: {
+          description: "Get captured output from a process",
+          inputSchema: {
+            type: "object",
+            properties: {
+              pid: { type: "number", description: "Process ID" },
+              lines: { type: "number", description: "Number of lines" },
+            },
+            required: ["pid"],
+          },
+          invoke: async (
+            options: vscode.LanguageModelToolInvocationOptions<any>,
+            token: vscode.CancellationToken
+          ) => {
+            if (!mcpClient) {
+              throw new Error("MCP Process server not running");
+            }
+            const output = await mcpClient.getProcessOutput(options.input);
+            return new vscode.LanguageModelToolResult([
+              new vscode.LanguageModelTextPart(JSON.stringify(output)),
+            ]);
+          },
+        },
+      },
+      {
+        name: "process_send_stdin",
+        tool: {
+          description: "Send input to process stdin",
+          inputSchema: {
+            type: "object",
+            properties: {
+              pid: { type: "number", description: "Process ID" },
+              data: { type: "string", description: "Data to send" },
+            },
+            required: ["pid", "data"],
+          },
+          invoke: async (
+            options: vscode.LanguageModelToolInvocationOptions<any>,
+            token: vscode.CancellationToken
+          ) => {
+            if (!mcpClient) {
+              throw new Error("MCP Process server not running");
+            }
+            await mcpClient.sendProcessInput(options.input);
+            return new vscode.LanguageModelToolResult([
+              new vscode.LanguageModelTextPart("Input sent"),
+            ]);
+          },
+        },
+      },
+      {
+        name: "process_get_status",
+        tool: {
+          description: "Get status of a process",
+          inputSchema: {
+            type: "object",
+            properties: {
+              pid: { type: "number", description: "Process ID" },
+            },
+            required: ["pid"],
+          },
+          invoke: async (
+            options: vscode.LanguageModelToolInvocationOptions<any>,
+            token: vscode.CancellationToken
+          ) => {
+            if (!mcpClient) {
+              throw new Error("MCP Process server not running");
+            }
+            const status = await mcpClient.getProcessStatus(options.input);
+            return new vscode.LanguageModelToolResult([
+              new vscode.LanguageModelTextPart(JSON.stringify(status)),
+            ]);
+          },
+        },
+      },
+      {
+        name: "process_create_group",
+        tool: {
+          description: "Create a process group or pipeline",
+          inputSchema: {
+            type: "object",
+            properties: {
+              name: { type: "string", description: "Group name" },
+              pids: {
+                type: "array",
+                items: { type: "number" },
+                description: "Process IDs",
+              },
+            },
+            required: ["name"],
+          },
+          invoke: async (
+            options: vscode.LanguageModelToolInvocationOptions<any>,
+            token: vscode.CancellationToken
+          ) => {
+            if (!mcpClient) {
+              throw new Error("MCP Process server not running");
+            }
+            await mcpClient.createProcessGroup(options.input);
+            return new vscode.LanguageModelToolResult([
+              new vscode.LanguageModelTextPart(
+                `Group ${options.input.name} created`
+              ),
+            ]);
+          },
+        },
+      },
+      {
+        name: "process_add_to_group",
+        tool: {
+          description: "Add process to existing group",
+          inputSchema: {
+            type: "object",
+            properties: {
+              groupName: { type: "string", description: "Group name" },
+              pid: { type: "number", description: "Process ID" },
+            },
+            required: ["groupName", "pid"],
+          },
+          invoke: async (
+            options: vscode.LanguageModelToolInvocationOptions<any>,
+            token: vscode.CancellationToken
+          ) => {
+            if (!mcpClient) {
+              throw new Error("MCP Process server not running");
+            }
+            await mcpClient.addToProcessGroup(options.input);
+            return new vscode.LanguageModelToolResult([
+              new vscode.LanguageModelTextPart(`Process added to group`),
+            ]);
+          },
+        },
+      },
+      {
+        name: "process_terminate_group",
+        tool: {
+          description: "Terminate all processes in a group",
+          inputSchema: {
+            type: "object",
+            properties: {
+              groupName: { type: "string", description: "Group name" },
+              force: { type: "boolean", description: "Force termination" },
+            },
+            required: ["groupName"],
+          },
+          invoke: async (
+            options: vscode.LanguageModelToolInvocationOptions<any>,
+            token: vscode.CancellationToken
+          ) => {
+            if (!mcpClient) {
+              throw new Error("MCP Process server not running");
+            }
+            await mcpClient.terminateProcessGroup(options.input);
+            return new vscode.LanguageModelToolResult([
+              new vscode.LanguageModelTextPart(`Group terminated`),
+            ]);
+          },
+        },
+      },
+      {
+        name: "process_start_service",
+        tool: {
+          description: "Start long-running service with auto-restart",
+          inputSchema: {
+            type: "object",
+            properties: {
+              name: { type: "string", description: "Service name" },
+              executable: { type: "string", description: "Executable" },
+              args: {
+                type: "array",
+                items: { type: "string" },
+                description: "Arguments",
+              },
+              autoRestart: { type: "boolean", description: "Auto-restart" },
+            },
+            required: ["name", "executable"],
+          },
+          invoke: async (
+            options: vscode.LanguageModelToolInvocationOptions<any>,
+            token: vscode.CancellationToken
+          ) => {
+            if (!mcpClient) {
+              throw new Error("MCP Process server not running");
+            }
+            await mcpClient.startService(options.input);
+            return new vscode.LanguageModelToolResult([
+              new vscode.LanguageModelTextPart(
+                `Service ${options.input.name} started`
+              ),
+            ]);
+          },
+        },
+      },
+      {
+        name: "process_stop_service",
+        tool: {
+          description: "Stop service and disable auto-restart",
+          inputSchema: {
+            type: "object",
+            properties: {
+              name: { type: "string", description: "Service name" },
+            },
+            required: ["name"],
+          },
+          invoke: async (
+            options: vscode.LanguageModelToolInvocationOptions<any>,
+            token: vscode.CancellationToken
+          ) => {
+            if (!mcpClient) {
+              throw new Error("MCP Process server not running");
+            }
+            await mcpClient.stopService(options.input);
+            return new vscode.LanguageModelToolResult([
+              new vscode.LanguageModelTextPart(
+                `Service ${options.input.name} stopped`
+              ),
+            ]);
+          },
+        },
+      },
+    ];
+
+    for (const { name, tool } of tools) {
+      context.subscriptions.push(vscode.lm.registerTool(name, tool));
+    }
+    outputChannel.appendLine(`Registered ${tools.length} language model tools`);
+  } catch (error) {
+    outputChannel.appendLine(
+      `Tool registration skipped (API not available): ${error}`
+    );
+  }
+
+  // Register task provider
+  const taskProvider = vscode.tasks.registerTaskProvider("mcp-process", {
+    provideTasks: () => {
+      const tasks: vscode.Task[] = [];
+      const config = vscode.workspace.getConfiguration("mcp-process");
+      const allowedExecs = config.get<string[]>(
+        "executable.allowedExecutables",
+        []
+      );
+
+      for (const exec of allowedExecs.slice(0, 5)) {
+        const task = new vscode.Task(
+          { type: "mcp-process", exec },
+          vscode.TaskScope.Workspace,
+          `Run ${exec}`,
+          "mcp-process",
+          new vscode.ShellExecution(exec)
+        );
+        tasks.push(task);
+      }
+      return tasks;
+    },
+    resolveTask: () => undefined,
+  });
+  context.subscriptions.push(taskProvider);
+
+  // Set platform context keys for conditional settings visibility
+  await setPlatformContext();
+
+  // Start Language Server (always start - it's lightweight and LSP tests need it)
   await startLanguageServer(context);
+
+  // Initialize Error Handler
+  errorHandler = new ErrorHandler(outputChannel);
+
+  // Initialize Settings Manager
+  settingsManager = new SettingsManager();
+  context.subscriptions.push(settingsManager);
+
+  // Listen for configuration changes
+  settingsManager.onConfigurationChanged(async (changes) => {
+    await handleConfigurationChange(changes);
+  });
+
+  // Initialize status bar item (will be shown when restart is needed)
+  statusBarItem = vscode.window.createStatusBarItem(
+    vscode.StatusBarAlignment.Left,
+    100
+  );
+  context.subscriptions.push(statusBarItem);
+
+  // Check for first run and show welcome experience (skip in test mode unless LSP tests)
+  if (!isTestMode || isLSPTest) {
+    await checkFirstRunExperience(context);
+  }
 
   // Initialize providers
   processTreeProvider = new ProcessTreeDataProvider();
@@ -47,13 +1296,19 @@ export async function activate(context: vscode.ExtensionContext) {
     )
   );
 
-  // Initialize MCP client
+  // Initialize MCP client (skip in test mode unless LSP tests or E2E tests)
   const config = vscode.workspace.getConfiguration("mcp-process");
-  const autoStart = config.get<boolean>("autoStart", true);
+  const autoStart = config.get<boolean>("server.autoStart", true);
+  const isE2ETest = process.env.VSCODE_E2E_TEST === "true";
 
-  if (autoStart) {
+  if (autoStart && (!isTestMode || isLSPTest || isE2ETest)) {
     try {
       mcpClient = new MCPProcessClient(outputChannel);
+
+      // Generate and pass server configuration from VS Code settings
+      const serverConfig = settingsManager.generateServerConfig();
+      mcpClient.setServerConfig(serverConfig);
+
       await mcpClient.start();
 
       processTreeProvider.setMCPClient(mcpClient);
@@ -80,6 +1335,12 @@ export async function activate(context: vscode.ExtensionContext) {
   }
 
   // Register commands
+  context.subscriptions.push(
+    vscode.commands.registerCommand("mcp-process.configureMcp", async () => {
+      await configureMcpServer();
+    })
+  );
+
   context.subscriptions.push(
     vscode.commands.registerCommand("mcp-process.startProcess", async () => {
       await startProcess();
@@ -134,6 +1395,49 @@ export async function activate(context: vscode.ExtensionContext) {
     )
   );
 
+  context.subscriptions.push(
+    vscode.commands.registerCommand("mcp-process.restartServer", async () => {
+      await restartServer();
+    })
+  );
+
+  // Configuration management commands
+  context.subscriptions.push(
+    vscode.commands.registerCommand(
+      "mcp-process.applyConfigurationPreset",
+      async () => {
+        await applyConfigurationPreset();
+      }
+    )
+  );
+
+  context.subscriptions.push(
+    vscode.commands.registerCommand(
+      "mcp-process.exportConfiguration",
+      async () => {
+        await exportConfiguration();
+      }
+    )
+  );
+
+  context.subscriptions.push(
+    vscode.commands.registerCommand(
+      "mcp-process.importConfiguration",
+      async () => {
+        await importConfiguration();
+      }
+    )
+  );
+
+  context.subscriptions.push(
+    vscode.commands.registerCommand(
+      "mcp-process.validateConfiguration",
+      async () => {
+        await validateConfiguration();
+      }
+    )
+  );
+
   // Copilot integration commands
   context.subscriptions.push(
     vscode.commands.registerCommand("mcp-process.getContext", async () => {
@@ -170,9 +1474,17 @@ export async function deactivate() {
   if (mcpClient) {
     mcpClient.stop();
   }
+  if (settingsManager) {
+    settingsManager.dispose();
+  }
+  if (statusBarItem) {
+    statusBarItem.dispose();
+  }
   if (languageClient) {
     await languageClient.stop();
   }
+  // Clear platform context keys
+  await clearPlatformContext();
   outputChannel.dispose();
 }
 
@@ -191,7 +1503,13 @@ function startAutoRefresh() {
 
 async function startProcess() {
   if (!mcpClient) {
-    vscode.window.showErrorMessage("MCP Process server not running");
+    if (errorHandler) {
+      await errorHandler.server.handleServerNotRunning(
+        new Error("MCP Process server not running")
+      );
+    } else {
+      vscode.window.showErrorMessage("MCP Process server not running");
+    }
     return;
   }
 
@@ -237,15 +1555,29 @@ async function startProcess() {
 
     await refreshProcessList();
   } catch (error: any) {
-    vscode.window.showErrorMessage(
+    outputChannel.appendLine(
       `Failed to start process: ${error.message || error}`
     );
+
+    if (errorHandler) {
+      await errorHandler.server.handleServerError(error);
+    } else {
+      vscode.window.showErrorMessage(
+        `Failed to start process: ${error.message || error}`
+      );
+    }
   }
 }
 
 async function terminateProcess(item: any) {
   if (!mcpClient) {
-    vscode.window.showErrorMessage("MCP Process server not running");
+    if (errorHandler) {
+      await errorHandler.server.handleServerNotRunning(
+        new Error("MCP Process server not running")
+      );
+    } else {
+      vscode.window.showErrorMessage("MCP Process server not running");
+    }
     return;
   }
 
@@ -280,15 +1612,29 @@ async function terminateProcess(item: any) {
 
     await refreshProcessList();
   } catch (error: any) {
-    vscode.window.showErrorMessage(
+    outputChannel.appendLine(
       `Failed to terminate process: ${error.message || error}`
     );
+
+    if (errorHandler) {
+      await errorHandler.server.handleServerError(error);
+    } else {
+      vscode.window.showErrorMessage(
+        `Failed to terminate process: ${error.message || error}`
+      );
+    }
   }
 }
 
 async function viewProcesses() {
   if (!mcpClient) {
-    vscode.window.showErrorMessage("MCP Process server not running");
+    if (errorHandler) {
+      await errorHandler.server.handleServerNotRunning(
+        new Error("MCP Process server not running")
+      );
+    } else {
+      vscode.window.showErrorMessage("MCP Process server not running");
+    }
     return;
   }
 

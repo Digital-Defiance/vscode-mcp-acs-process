@@ -2,13 +2,16 @@
   "name": "mcp-acs-process",
   "displayName": "MCP ACS Process Manager",
   "description": "Process management for AI agents with MCP integration and security boundaries. Part of the Digital Defiance AI Capabilities Suite.",
-  "version": "1.0.0",
+  "version": "1.5.0",
   "packageManager": "yarn@4.12.0",
   "publisher": "DigitalDefiance",
   "icon": "images/icon.png",
   "engines": {
-    "vscode": "^1.85.0"
+    "vscode": "^1.96.0"
   },
+  "enabledApiProposals": [
+    "mcp"
+  ],
   "categories": [
     "Other",
     "Testing",
@@ -17,6 +20,7 @@
   "keywords": [
     "process",
     "mcp",
+    "mcp-server",
     "ai-agent",
     "copilot",
     "process-management",
@@ -32,7 +36,360 @@
   ],
   "main": "./out/extension.js",
   "contributes": {
+    "mcpServerDefinitionProviders": [
+      {
+        "id": "mcp-acs-process.mcp-provider",
+        "label": "MCP Process Manager"
+      }
+    ],
+    "chatParticipants": [
+      {
+        "id": "mcp-acs-process.participant",
+        "name": "process",
+        "description": "MCP Process Manager - Enterprise-grade process management with security boundaries",
+        "isSticky": true
+      }
+    ],
+    "languageModelTools": [
+      {
+        "name": "process_start",
+        "displayName": "Start Process",
+        "modelDescription": "Start a new process with security boundaries",
+        "toolReferenceName": "startProcess",
+        "canBeReferencedInPrompt": true,
+        "tags": [
+          "process",
+          "mcp"
+        ],
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "executable": {
+              "type": "string",
+              "description": "Executable to run"
+            },
+            "args": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              },
+              "description": "Arguments"
+            },
+            "cwd": {
+              "type": "string",
+              "description": "Working directory"
+            },
+            "env": {
+              "type": "object",
+              "description": "Environment variables"
+            },
+            "timeout": {
+              "type": "number",
+              "description": "Timeout in milliseconds"
+            }
+          },
+          "required": [
+            "executable"
+          ]
+        }
+      },
+      {
+        "name": "process_list",
+        "displayName": "List Processes",
+        "modelDescription": "List all running managed processes",
+        "toolReferenceName": "listProcesses",
+        "canBeReferencedInPrompt": true,
+        "tags": [
+          "process",
+          "mcp"
+        ],
+        "inputSchema": {
+          "type": "object",
+          "properties": {}
+        }
+      },
+      {
+        "name": "process_terminate",
+        "displayName": "Terminate Process",
+        "modelDescription": "Terminate a running process",
+        "toolReferenceName": "terminateProcess",
+        "canBeReferencedInPrompt": true,
+        "tags": [
+          "process",
+          "mcp"
+        ],
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "pid": {
+              "type": "number",
+              "description": "Process ID"
+            },
+            "force": {
+              "type": "boolean",
+              "description": "Force termination"
+            }
+          },
+          "required": [
+            "pid"
+          ]
+        }
+      },
+      {
+        "name": "process_get_stats",
+        "displayName": "Process Stats",
+        "modelDescription": "Get resource usage statistics for a process",
+        "toolReferenceName": "getProcessStats",
+        "canBeReferencedInPrompt": true,
+        "tags": [
+          "process",
+          "mcp"
+        ],
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "pid": {
+              "type": "number",
+              "description": "Process ID"
+            }
+          },
+          "required": [
+            "pid"
+          ]
+        }
+      },
+      {
+        "name": "process_get_output",
+        "displayName": "Get Process Output",
+        "modelDescription": "Get captured output from a process",
+        "toolReferenceName": "getProcessOutput",
+        "canBeReferencedInPrompt": true,
+        "tags": [
+          "process",
+          "mcp"
+        ],
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "pid": {
+              "type": "number",
+              "description": "Process ID"
+            },
+            "lines": {
+              "type": "number",
+              "description": "Number of lines to retrieve"
+            }
+          },
+          "required": [
+            "pid"
+          ]
+        }
+      },
+      {
+        "name": "process_send_stdin",
+        "displayName": "Send Input",
+        "modelDescription": "Send input to process stdin",
+        "toolReferenceName": "sendProcessInput",
+        "canBeReferencedInPrompt": true,
+        "tags": [
+          "process",
+          "mcp"
+        ],
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "pid": {
+              "type": "number",
+              "description": "Process ID"
+            },
+            "data": {
+              "type": "string",
+              "description": "Data to send"
+            }
+          },
+          "required": [
+            "pid",
+            "data"
+          ]
+        }
+      },
+      {
+        "name": "process_get_status",
+        "displayName": "Get Process Status",
+        "modelDescription": "Get status of a process",
+        "toolReferenceName": "getProcessStatus",
+        "canBeReferencedInPrompt": true,
+        "tags": [
+          "process",
+          "mcp"
+        ],
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "pid": {
+              "type": "number",
+              "description": "Process ID"
+            }
+          },
+          "required": [
+            "pid"
+          ]
+        }
+      },
+      {
+        "name": "process_create_group",
+        "displayName": "Create Process Group",
+        "modelDescription": "Create a process group or pipeline",
+        "toolReferenceName": "createProcessGroup",
+        "canBeReferencedInPrompt": true,
+        "tags": [
+          "process",
+          "mcp"
+        ],
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "name": {
+              "type": "string",
+              "description": "Group name"
+            },
+            "pids": {
+              "type": "array",
+              "items": {
+                "type": "number"
+              },
+              "description": "Process IDs to add to group"
+            }
+          },
+          "required": [
+            "name"
+          ]
+        }
+      },
+      {
+        "name": "process_add_to_group",
+        "displayName": "Add to Process Group",
+        "modelDescription": "Add process to existing group",
+        "toolReferenceName": "addToProcessGroup",
+        "canBeReferencedInPrompt": true,
+        "tags": [
+          "process",
+          "mcp"
+        ],
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "groupName": {
+              "type": "string",
+              "description": "Group name"
+            },
+            "pid": {
+              "type": "number",
+              "description": "Process ID"
+            }
+          },
+          "required": [
+            "groupName",
+            "pid"
+          ]
+        }
+      },
+      {
+        "name": "process_terminate_group",
+        "displayName": "Terminate Process Group",
+        "modelDescription": "Terminate all processes in a group",
+        "toolReferenceName": "terminateProcessGroup",
+        "canBeReferencedInPrompt": true,
+        "tags": [
+          "process",
+          "mcp"
+        ],
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "groupName": {
+              "type": "string",
+              "description": "Group name"
+            },
+            "force": {
+              "type": "boolean",
+              "description": "Force termination"
+            }
+          },
+          "required": [
+            "groupName"
+          ]
+        }
+      },
+      {
+        "name": "process_start_service",
+        "displayName": "Start Service",
+        "modelDescription": "Start long-running service with auto-restart",
+        "toolReferenceName": "startService",
+        "canBeReferencedInPrompt": true,
+        "tags": [
+          "process",
+          "mcp"
+        ],
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "name": {
+              "type": "string",
+              "description": "Service name"
+            },
+            "executable": {
+              "type": "string",
+              "description": "Executable to run"
+            },
+            "args": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              },
+              "description": "Arguments"
+            },
+            "autoRestart": {
+              "type": "boolean",
+              "description": "Enable auto-restart"
+            }
+          },
+          "required": [
+            "name",
+            "executable"
+          ]
+        }
+      },
+      {
+        "name": "process_stop_service",
+        "displayName": "Stop Service",
+        "modelDescription": "Stop service and disable auto-restart",
+        "toolReferenceName": "stopService",
+        "canBeReferencedInPrompt": true,
+        "tags": [
+          "process",
+          "mcp"
+        ],
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "name": {
+              "type": "string",
+              "description": "Service name"
+            }
+          },
+          "required": [
+            "name"
+          ]
+        }
+      }
+    ],
     "commands": [
+      {
+        "command": "mcp-process.configureMcp",
+        "title": "MCP Process: Add to Copilot MCP Servers",
+        "icon": "$(add)"
+      },
       {
         "command": "mcp-process.startProcess",
         "title": "MCP Process: Start Process",
@@ -67,6 +424,31 @@
         "command": "mcp-process.configureAllowlist",
         "title": "MCP Process: Configure Executable Allowlist",
         "icon": "$(settings-gear)"
+      },
+      {
+        "command": "mcp-process.restartServer",
+        "title": "MCP Process: Restart Server",
+        "icon": "$(debug-restart)"
+      },
+      {
+        "command": "mcp-process.applyConfigurationPreset",
+        "title": "MCP Process: Apply Configuration Preset",
+        "icon": "$(settings)"
+      },
+      {
+        "command": "mcp-process.exportConfiguration",
+        "title": "MCP Process: Export Configuration",
+        "icon": "$(export)"
+      },
+      {
+        "command": "mcp-process.importConfiguration",
+        "title": "MCP Process: Import Configuration",
+        "icon": "$(import)"
+      },
+      {
+        "command": "mcp-process.validateConfiguration",
+        "title": "MCP Process: Validate Configuration",
+        "icon": "$(check)"
       }
     ],
     "viewsContainers": {
@@ -94,6 +476,43 @@
         }
       ]
     },
+    "walkthroughs": [
+      {
+        "id": "mcp-acs-process.walkthrough",
+        "title": "Get Started with MCP Process Manager",
+        "description": "Learn how to manage processes with AI assistance",
+        "steps": [
+          {
+            "id": "install",
+            "title": "Extension Installed",
+            "description": "MCP Process Manager is now active.\n[Open Settings](command:workbench.action.openSettings?%5B%22mcp-process%22%5D)",
+            "media": {
+              "markdown": "README.md"
+            }
+          },
+          {
+            "id": "copilot",
+            "title": "Use with Copilot",
+            "description": "Ask Copilot to manage processes:\n- `@process start node server.js`\n- `@process list running processes`\n[Try it now](command:workbench.action.chat.open)",
+            "media": {
+              "markdown": "README.md"
+            }
+          }
+        ]
+      }
+    ],
+    "keybindings": [
+      {
+        "command": "mcp-process.startProcess",
+        "key": "ctrl+shift+p ctrl+shift+s",
+        "mac": "cmd+shift+p cmd+shift+s"
+      },
+      {
+        "command": "mcp-process.viewProcesses",
+        "key": "ctrl+shift+p ctrl+shift+l",
+        "mac": "cmd+shift+p cmd+shift+l"
+      }
+    ],
     "menus": {
       "view/title": [
         {
@@ -142,38 +561,48 @@
         },
         {
           "command": "mcp-process.configureAllowlist"
+        },
+        {
+          "command": "mcp-process.restartServer"
+        },
+        {
+          "command": "mcp-process.applyConfigurationPreset"
+        },
+        {
+          "command": "mcp-process.exportConfiguration"
+        },
+        {
+          "command": "mcp-process.importConfiguration"
+        },
+        {
+          "command": "mcp-process.validateConfiguration"
         }
       ]
     },
     "configuration": {
       "title": "MCP Process Manager",
       "properties": {
-        "mcp-process.serverPath": {
+        "mcp-process.server.serverPath": {
           "type": "string",
           "default": "",
-          "description": "Path to MCP process server executable. Leave empty to use bundled server or global installation."
+          "markdownDescription": "Path to MCP process server executable.\n\nLeave empty to use the bundled server or global installation.\n\n**Note:** Changes require server restart."
         },
-        "mcp-process.configPath": {
+        "mcp-process.server.useConfigFile": {
+          "type": "boolean",
+          "default": false,
+          "markdownDescription": "Use external configuration file instead of VS Code settings.\n\nWhen `false` (recommended), all settings are managed through VS Code settings UI.\n\nWhen `true`, the server will read configuration from the file specified in `configPath`.\n\n**Note:** This is only needed for advanced use cases or when running the server standalone."
+        },
+        "mcp-process.server.configPath": {
           "type": "string",
           "default": "",
-          "description": "Path to MCP process server configuration file."
+          "markdownDescription": "Path to MCP process server configuration file.\n\n**Only used when `useConfigFile` is `true`.**\n\nLeave empty to use default location (`~/.mcp-process/config.json`)."
         },
-        "mcp-process.autoStart": {
+        "mcp-process.server.autoStart": {
           "type": "boolean",
           "default": true,
-          "description": "Automatically start MCP server when VS Code opens"
+          "markdownDescription": "Automatically start MCP server when VS Code opens.\n\nDisable this if you want to manually control when the server starts."
         },
-        "mcp-process.refreshInterval": {
-          "type": "number",
-          "default": 2000,
-          "description": "Process list refresh interval in milliseconds"
-        },
-        "mcp-process.showResourceUsage": {
-          "type": "boolean",
-          "default": true,
-          "description": "Show CPU and memory usage in process list"
-        },
-        "mcp-process.logLevel": {
+        "mcp-process.server.logLevel": {
           "type": "string",
           "enum": [
             "debug",
@@ -182,7 +611,422 @@
             "error"
           ],
           "default": "info",
-          "description": "Log level for MCP process manager"
+          "markdownDescription": "Log level for MCP process manager.\n\n- `debug`: Verbose logging for troubleshooting\n- `info`: Standard operational logging\n- `warn`: Warning messages only\n- `error`: Error messages only"
+        },
+        "mcp-process.executable.allowedExecutables": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "default": [],
+          "markdownDescription": "List of allowed executables (paths, basenames, or glob patterns).\n\n**Security:** Only executables in this list can be launched. Use absolute paths for maximum security.\n\n**Examples:**\n- `/usr/bin/node` - Absolute path (most secure)\n- `python3` - Basename (searches PATH)\n- `/usr/local/bin/*` - Glob pattern\n- `node`, `npm`, `yarn`, `git` - Common development tools\n\n**Platform Notes:**\n- Windows: Use `\\` or `/` for paths (e.g., `C:\\Program Files\\nodejs\\node.exe`)\n- Unix/Linux: Use `/` for paths (e.g., `/usr/bin/node`)\n- macOS: Use `/` for paths (e.g., `/usr/local/bin/node`)\n\n**Note:** Empty list means all executables are allowed (not recommended for production)."
+        },
+        "mcp-process.executable.blockSetuidExecutables": {
+          "type": "boolean",
+          "default": true,
+          "markdownDescription": "Block setuid/setgid executables (Unix/Linux).\n\n**Security:** Prevents execution of programs with elevated privileges.\n\n**Platform:** Unix/Linux only\n\n**Recommended:** `true` for production environments"
+        },
+        "mcp-process.executable.blockShellInterpreters": {
+          "type": "boolean",
+          "default": false,
+          "markdownDescription": "Block shell interpreters (bash, sh, cmd.exe, powershell, etc.).\n\n**Security:** Prevents shell command injection attacks.\n\n**Warning:** May break scripts that rely on shell features.\n\n**Recommended:** `true` for high-security environments"
+        },
+        "mcp-process.executable.additionalBlockedExecutables": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "default": [],
+          "markdownDescription": "Additional blocked executables beyond the hardcoded dangerous list.\n\n**Security:** Use this to block specific executables that are dangerous in your environment.\n\n**Examples:**\n- `curl`\n- `wget`\n- `nc` (netcat)"
+        },
+        "mcp-process.executable.maxArgumentCount": {
+          "type": "number",
+          "default": 100,
+          "minimum": 1,
+          "maximum": 1000,
+          "markdownDescription": "Maximum number of arguments per process.\n\n**Security:** Prevents argument overflow attacks.\n\n**Default:** 100 arguments"
+        },
+        "mcp-process.executable.maxArgumentLength": {
+          "type": "number",
+          "default": 4096,
+          "minimum": 1,
+          "maximum": 1048576,
+          "markdownDescription": "Maximum length of any single argument (in bytes).\n\n**Security:** Prevents buffer overflow attacks.\n\n**Default:** 4096 bytes (4 KB)"
+        },
+        "mcp-process.executable.blockedArgumentPatterns": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "default": [],
+          "markdownDescription": "Regex patterns to block in arguments.\n\n**Security:** Use this to prevent specific patterns in command arguments that could be used for injection attacks.\n\n**Examples:**\n- `.*\\|.*` - Block pipes (prevents command chaining)\n- `.*>.*` - Block redirects (prevents file overwrites)\n- `.*\\$\\(.*\\).*` - Block command substitution (prevents code execution)\n- `.*&&.*` - Block command chaining\n- `.*;.*` - Block semicolon separators\n- `.*\\`.*\\`.*` - Block backtick command substitution\n\n**Note:** Patterns are matched against each argument individually."
+        },
+        "mcp-process.resources.defaultMaxCpuPercent": {
+          "type": "number",
+          "default": 50,
+          "minimum": 0,
+          "maximum": 100,
+          "markdownDescription": "Default maximum CPU usage percentage (0-100).\n\n**Resource Control:** Limits CPU usage for spawned processes.\n\n**Default:** 50% of one CPU core\n\n**Examples:**\n- `25` - Light background tasks\n- `50` - Balanced (default)\n- `80` - CPU-intensive tasks\n- `100` - Full CPU core\n- `0` - No limit (not recommended)\n\n**Note:** On multi-core systems, 100% = one full core. For 2 cores, set to 200% (but limited by `maximumMaxCpuPercent`).\n\n**Platform:** All platforms"
+        },
+        "mcp-process.resources.defaultMaxMemoryMB": {
+          "type": "number",
+          "default": 512,
+          "minimum": 0,
+          "markdownDescription": "Default maximum memory usage in megabytes.\n\n**Resource Control:** Limits memory usage for spawned processes.\n\n**Default:** 512 MB\n\n**Note:** Set to 0 to disable memory limiting."
+        },
+        "mcp-process.resources.defaultMaxFileDescriptors": {
+          "type": "number",
+          "default": 1024,
+          "minimum": 0,
+          "markdownDescription": "Default maximum number of file descriptors.\n\n**Resource Control:** Limits open files/sockets for spawned processes.\n\n**Default:** 1024 file descriptors\n\n**Platform:** Unix/Linux only"
+        },
+        "mcp-process.resources.defaultMaxCpuTime": {
+          "type": "number",
+          "default": 300,
+          "minimum": 0,
+          "markdownDescription": "Default maximum CPU time in seconds.\n\n**Resource Control:** Limits total CPU time for spawned processes.\n\n**Default:** 300 seconds (5 minutes)\n\n**Note:** Set to 0 to disable CPU time limiting."
+        },
+        "mcp-process.resources.defaultMaxProcesses": {
+          "type": "number",
+          "default": 10,
+          "minimum": 0,
+          "markdownDescription": "Default maximum number of processes in process tree.\n\n**Resource Control:** Limits child processes spawned by the main process.\n\n**Default:** 10 processes\n\n**Note:** Set to 0 to disable process count limiting."
+        },
+        "mcp-process.resources.maximumMaxCpuPercent": {
+          "type": "number",
+          "default": 100,
+          "minimum": 0,
+          "maximum": 100,
+          "markdownDescription": "Maximum allowed CPU limit (cannot be exceeded even if requested).\n\n**Resource Control:** Hard limit on CPU usage.\n\n**Default:** 100% (one full CPU core)"
+        },
+        "mcp-process.resources.maximumMaxMemoryMB": {
+          "type": "number",
+          "default": 2048,
+          "minimum": 0,
+          "markdownDescription": "Maximum allowed memory limit in megabytes (cannot be exceeded even if requested).\n\n**Resource Control:** Hard limit on memory usage.\n\n**Default:** 2048 MB (2 GB)"
+        },
+        "mcp-process.resources.strictResourceEnforcement": {
+          "type": "boolean",
+          "default": false,
+          "markdownDescription": "Terminate processes immediately on resource limit violation.\n\n**Resource Control:** When `true`, processes are killed immediately when they exceed limits.\n\nWhen `false`, processes are allowed to exceed limits briefly.\n\n**Recommended:** `true` for production environments"
+        },
+        "mcp-process.process.maxConcurrentProcesses": {
+          "type": "number",
+          "default": 10,
+          "minimum": 1,
+          "markdownDescription": "Maximum concurrent processes across all agents.\n\n**Process Control:** Global limit on running processes.\n\n**Default:** 10 processes"
+        },
+        "mcp-process.process.maxConcurrentProcessesPerAgent": {
+          "type": "number",
+          "default": 5,
+          "minimum": 1,
+          "markdownDescription": "Maximum concurrent processes per agent.\n\n**Process Control:** Per-agent limit on running processes.\n\n**Default:** 5 processes per agent"
+        },
+        "mcp-process.process.maxProcessLifetime": {
+          "type": "number",
+          "default": 3600,
+          "minimum": 1,
+          "markdownDescription": "Maximum process lifetime in seconds.\n\n**Process Control:** Processes are terminated after this duration.\n\n**Default:** 3600 seconds (1 hour)"
+        },
+        "mcp-process.process.maxTotalProcesses": {
+          "type": "number",
+          "default": 1000,
+          "minimum": 1,
+          "markdownDescription": "Maximum total processes that can be launched (lifetime of server).\n\n**Process Control:** Server stops accepting new processes after this limit.\n\n**Default:** 1000 processes"
+        },
+        "mcp-process.process.maxLaunchesPerMinute": {
+          "type": "number",
+          "default": 10,
+          "minimum": 1,
+          "markdownDescription": "Maximum process launches per minute per agent.\n\n**Rate Limiting:** Prevents rapid process spawning.\n\n**Default:** 10 launches per minute"
+        },
+        "mcp-process.process.maxLaunchesPerHour": {
+          "type": "number",
+          "default": 100,
+          "minimum": 1,
+          "markdownDescription": "Maximum process launches per hour per agent.\n\n**Rate Limiting:** Prevents sustained high-rate process spawning.\n\n**Default:** 100 launches per hour"
+        },
+        "mcp-process.process.rateLimitCooldownSeconds": {
+          "type": "number",
+          "default": 60,
+          "minimum": 0,
+          "markdownDescription": "Cooldown period in seconds after rate limit is hit.\n\n**Rate Limiting:** Agent must wait this duration before launching more processes.\n\n**Default:** 60 seconds"
+        },
+        "mcp-process.io.allowStdinInput": {
+          "type": "boolean",
+          "default": true,
+          "markdownDescription": "Allow stdin input to processes.\n\n**I/O Control:** When `false`, processes cannot receive stdin input.\n\n**Security:** Disable for processes that shouldn't accept user input."
+        },
+        "mcp-process.io.allowOutputCapture": {
+          "type": "boolean",
+          "default": true,
+          "markdownDescription": "Allow stdout/stderr capture.\n\n**I/O Control:** When `false`, process output is not captured.\n\n**Performance:** Disabling can improve performance for high-output processes."
+        },
+        "mcp-process.io.maxOutputBufferSize": {
+          "type": "number",
+          "default": 1048576,
+          "minimum": 0,
+          "markdownDescription": "Maximum output buffer size per stream (in bytes).\n\n**I/O Control:** Limits memory used for capturing process output.\n\n**Default:** 1048576 bytes (1 MB)\n\n**Note:** Set to 0 for unlimited buffering (not recommended)."
+        },
+        "mcp-process.io.blockBinaryStdin": {
+          "type": "boolean",
+          "default": true,
+          "markdownDescription": "Block binary data in stdin.\n\n**Security:** Prevents binary exploits via stdin.\n\n**Recommended:** `true` for production environments"
+        },
+        "mcp-process.security.allowProcessTermination": {
+          "type": "boolean",
+          "default": true,
+          "markdownDescription": "Allow agents to terminate processes they created.\n\n**Security:** When `false`, agents cannot terminate their own processes."
+        },
+        "mcp-process.security.allowGroupTermination": {
+          "type": "boolean",
+          "default": true,
+          "markdownDescription": "Allow agents to terminate process groups.\n\n**Security:** When `false`, agents cannot terminate process groups."
+        },
+        "mcp-process.security.allowForcedTermination": {
+          "type": "boolean",
+          "default": false,
+          "markdownDescription": "Allow forced termination (SIGKILL).\n\n**Security:** When `true`, agents can use SIGKILL to forcefully terminate processes.\n\n**Warning:** SIGKILL cannot be caught or ignored by processes.\n\n**Recommended:** `false` for production environments"
+        },
+        "mcp-process.security.requireTerminationConfirmation": {
+          "type": "boolean",
+          "default": false,
+          "markdownDescription": "Require confirmation before terminating processes.\n\n**Security:** When `true`, user must confirm process termination.\n\n**Recommended:** `true` for production environments"
+        },
+        "mcp-process.security.requireConfirmation": {
+          "type": "boolean",
+          "default": false,
+          "markdownDescription": "Require explicit confirmation for process launches.\n\n**Security:** When `true`, user must approve each process launch.\n\n**Recommended:** `true` for high-security environments"
+        },
+        "mcp-process.security.requireConfirmationFor": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "default": [],
+          "markdownDescription": "Require confirmation for specific executables.\n\n**Security:** List executables that require user approval before launching. Useful for potentially dangerous commands.\n\n**Examples:**\n- `rm` - File deletion\n- `dd` - Disk operations\n- `mkfs` - Filesystem creation\n- `curl`, `wget` - Network downloads\n- `chmod`, `chown` - Permission changes\n- `sudo` - Privilege escalation\n\n**Note:** Works even if `requireConfirmation` is `false`. Provides fine-grained control over dangerous operations."
+        },
+        "mcp-process.security.autoApproveAfterCount": {
+          "type": "number",
+          "default": 0,
+          "minimum": 0,
+          "markdownDescription": "Auto-approve after N successful launches of the same command.\n\n**Security:** After this many successful launches, the command is auto-approved.\n\n**Default:** 0 (disabled)\n\n**Note:** Set to 0 to disable auto-approval."
+        },
+        "mcp-process.security.allowedWorkingDirectories": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "default": [],
+          "markdownDescription": "Allowed working directories for processes.\n\n**Security:** Only these directories can be used as working directories.\n\n**Note:** Empty list means all directories are allowed."
+        },
+        "mcp-process.security.blockedWorkingDirectories": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "default": [],
+          "markdownDescription": "Blocked working directories for processes.\n\n**Security:** These directories cannot be used as working directories.\n\n**Note:** Takes precedence over `allowedWorkingDirectories`.\n\n**Examples:**\n- `/etc`\n- `/root`\n- `C:\\Windows\\System32`"
+        },
+        "mcp-process.security.additionalBlockedEnvVars": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "default": [],
+          "markdownDescription": "Additional blocked environment variables beyond the hardcoded list.\n\n**Security:** These environment variables cannot be set for spawned processes.\n\n**Examples:**\n- `AWS_SECRET_ACCESS_KEY`\n- `DATABASE_PASSWORD`"
+        },
+        "mcp-process.security.allowedEnvVars": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "default": [],
+          "markdownDescription": "Allowed environment variables (whitelist mode).\n\n**Security:** When set, only these environment variables are permitted.\n\n**Note:** Empty list disables whitelist mode (all variables allowed except blocked ones)."
+        },
+        "mcp-process.security.maxEnvVarCount": {
+          "type": "number",
+          "default": 100,
+          "minimum": 0,
+          "markdownDescription": "Maximum number of environment variables.\n\n**Security:** Limits the number of environment variables that can be set.\n\n**Default:** 100 variables"
+        },
+        "mcp-process.security.advanced.enableChroot": {
+          "type": "boolean",
+          "default": false,
+          "markdownDescription": "Enable chroot jail for processes.\n\n**Security:** Isolates processes in a restricted filesystem. Processes cannot access files outside the chroot directory.\n\n**Platform:** Unix/Linux only (not available on Windows)\n\n**Requires:**\n- `chrootDirectory` must be set\n- Root privileges or `CAP_SYS_CHROOT` capability\n- Chroot directory must contain necessary libraries and files\n\n**Use Cases:**\n- Running untrusted code\n- Isolating build processes\n- Creating sandboxed environments\n\n**Warning:** Chroot is not a complete security solution. Consider using containers (Docker) for stronger isolation."
+        },
+        "mcp-process.security.advanced.chrootDirectory": {
+          "type": "string",
+          "default": "",
+          "markdownDescription": "Chroot directory path.\n\n**Security:** Processes will be restricted to this directory tree.\n\n**Platform:** Unix/Linux only\n\n**Required when:** `enableChroot` is `true`"
+        },
+        "mcp-process.security.advanced.enableNamespaces": {
+          "type": "boolean",
+          "default": false,
+          "markdownDescription": "Enable Linux namespaces for process isolation.\n\n**Security:** Provides strong isolation between processes. Namespaces are the foundation of container technology.\n\n**Platform:** Linux only (kernel 3.8+)\n\n**Requires:**\n- Linux kernel with namespace support\n- Appropriate privileges (root or user namespaces)\n- Individual namespace types must be enabled separately\n\n**Available Namespaces:**\n- PID: Process isolation\n- Network: Network stack isolation\n- Mount: Filesystem mount isolation\n- UTS: Hostname isolation\n- IPC: Inter-process communication isolation\n- User: User/group ID isolation\n\n**Use Cases:**\n- Container-like isolation\n- Running untrusted code\n- Multi-tenant environments\n\n**Note:** Enable specific namespaces using `namespacesPid`, `namespacesNetwork`, etc."
+        },
+        "mcp-process.security.advanced.namespacesPid": {
+          "type": "boolean",
+          "default": false,
+          "markdownDescription": "Enable PID namespace isolation.\n\n**Security:** Processes cannot see other processes on the system.\n\n**Platform:** Linux only\n\n**Requires:** `enableNamespaces` must be `true`"
+        },
+        "mcp-process.security.advanced.namespacesNetwork": {
+          "type": "boolean",
+          "default": false,
+          "markdownDescription": "Enable network namespace isolation.\n\n**Security:** Processes have isolated network stack.\n\n**Platform:** Linux only\n\n**Requires:** `enableNamespaces` must be `true`"
+        },
+        "mcp-process.security.advanced.namespacesMount": {
+          "type": "boolean",
+          "default": false,
+          "markdownDescription": "Enable mount namespace isolation.\n\n**Security:** Processes have isolated filesystem mounts.\n\n**Platform:** Linux only\n\n**Requires:** `enableNamespaces` must be `true`"
+        },
+        "mcp-process.security.advanced.namespacesUts": {
+          "type": "boolean",
+          "default": false,
+          "markdownDescription": "Enable UTS namespace isolation (hostname/domain).\n\n**Security:** Processes have isolated hostname and domain name.\n\n**Platform:** Linux only\n\n**Requires:** `enableNamespaces` must be `true`"
+        },
+        "mcp-process.security.advanced.namespacesIpc": {
+          "type": "boolean",
+          "default": false,
+          "markdownDescription": "Enable IPC namespace isolation.\n\n**Security:** Processes have isolated inter-process communication.\n\n**Platform:** Linux only\n\n**Requires:** `enableNamespaces` must be `true`"
+        },
+        "mcp-process.security.advanced.namespacesUser": {
+          "type": "boolean",
+          "default": false,
+          "markdownDescription": "Enable user namespace isolation.\n\n**Security:** Processes have isolated user/group IDs.\n\n**Platform:** Linux only\n\n**Requires:** `enableNamespaces` must be `true`"
+        },
+        "mcp-process.security.advanced.enableSeccomp": {
+          "type": "boolean",
+          "default": false,
+          "markdownDescription": "Enable seccomp filtering (syscall restrictions).\n\n**Security:** Restricts system calls available to processes.\n\n**Platform:** Linux only\n\n**Warning:** May break applications that use restricted syscalls"
+        },
+        "mcp-process.security.advanced.seccompProfile": {
+          "type": "string",
+          "enum": [
+            "strict",
+            "moderate",
+            "permissive"
+          ],
+          "default": "moderate",
+          "markdownDescription": "Seccomp profile to use.\n\n**Security:** Seccomp (Secure Computing Mode) restricts system calls available to processes.\n\n**Profiles:**\n- `strict`: ~50 syscalls (read, write, exit, etc.) - Highest security, may break complex apps\n- `moderate`: ~150 syscalls (includes networking, file ops) - Balanced, works for most apps\n- `permissive`: ~250 syscalls (most common operations) - Lower security, maximum compatibility\n\n**Platform:** Linux only (kernel 3.5+)\n\n**Requires:** `enableSeccomp` must be `true`\n\n**Use Cases:**\n- `strict`: Simple scripts, calculators, data processing\n- `moderate`: Web servers, CLI tools, most applications\n- `permissive`: Complex applications, debugging\n\n**Warning:** Strict profiles may cause applications to crash if they use blocked syscalls."
+        },
+        "mcp-process.security.advanced.blockNetworkAccess": {
+          "type": "boolean",
+          "default": false,
+          "markdownDescription": "Block network access for spawned processes.\n\n**Security:** Prevents processes from making network connections.\n\n**Note:** Can be combined with `allowedNetworkDestinations` for fine-grained control."
+        },
+        "mcp-process.security.advanced.allowedNetworkDestinations": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "default": [],
+          "markdownDescription": "Allowed network destinations (IP/CIDR or hostnames).\n\n**Security:** Only these destinations can be accessed. Useful for restricting network access to specific APIs or services.\n\n**Examples:**\n- `192.168.1.0/24` - Local network subnet\n- `api.example.com` - Specific hostname\n- `10.0.0.1` - Single IP address\n- `*.github.com` - Wildcard hostname\n- `8.8.8.8` - DNS server\n\n**Format:**\n- IP addresses: `192.168.1.1`\n- CIDR notation: `10.0.0.0/8`\n- Hostnames: `api.example.com`\n- Wildcards: `*.example.com`\n\n**Note:** Empty list with `blockNetworkAccess: false` allows all destinations. Use with `blockNetworkAccess: true` for whitelist mode."
+        },
+        "mcp-process.security.advanced.blockedNetworkDestinations": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "default": [],
+          "markdownDescription": "Blocked network destinations (IP/CIDR or hostnames).\n\n**Security:** These destinations cannot be accessed. Useful for blocking cloud metadata services and internal resources.\n\n**Note:** Takes precedence over `allowedNetworkDestinations`.\n\n**Common Security Blocks:**\n- `169.254.169.254` - AWS EC2 metadata service\n- `metadata.google.internal` - GCP metadata service\n- `169.254.169.254/32` - AWS metadata (CIDR)\n- `fd00:ec2::254` - AWS IPv6 metadata\n- `10.0.0.0/8` - Private network range\n- `172.16.0.0/12` - Private network range\n- `192.168.0.0/16` - Private network range\n- `localhost`, `127.0.0.1` - Local services\n\n**Use Cases:**\n- Prevent SSRF attacks\n- Block access to internal services\n- Prevent metadata service access in cloud environments"
+        },
+        "mcp-process.security.advanced.enableMAC": {
+          "type": "boolean",
+          "default": false,
+          "markdownDescription": "Enable mandatory access control (SELinux/AppArmor).\n\n**Security:** Enforces MAC policies on processes.\n\n**Platform:** Linux only (requires SELinux or AppArmor)\n\n**Requires:** `macProfile` must be set"
+        },
+        "mcp-process.security.advanced.macProfile": {
+          "type": "string",
+          "default": "",
+          "markdownDescription": "SELinux context or AppArmor profile.\n\n**Security:** MAC profile to apply to processes.\n\n**Platform:** Linux only\n\n**Required when:** `enableMAC` is `true`\n\n**Examples:**\n- `unconfined_u:unconfined_r:unconfined_t:s0` (SELinux)\n- `/usr/bin/my-profile` (AppArmor)"
+        },
+        "mcp-process.security.advanced.dropCapabilities": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "default": [],
+          "markdownDescription": "Linux capabilities to drop from processes.\n\n**Security:** Removes specific privileges from processes. Capabilities provide fine-grained privilege control beyond traditional root/non-root.\n\n**Platform:** Linux only\n\n**Common Capabilities to Drop:**\n- `CAP_NET_RAW` - Prevent raw socket access (ping, packet sniffing)\n- `CAP_SYS_ADMIN` - Prevent system administration operations\n- `CAP_SYS_PTRACE` - Prevent process debugging/tracing\n- `CAP_SYS_MODULE` - Prevent kernel module loading\n- `CAP_SYS_BOOT` - Prevent system reboot\n- `CAP_NET_ADMIN` - Prevent network configuration\n- `CAP_DAC_OVERRIDE` - Prevent bypassing file permissions\n- `CAP_SETUID` - Prevent changing user ID\n- `CAP_SETGID` - Prevent changing group ID\n\n**Use Cases:**\n- Running untrusted code\n- Reducing attack surface\n- Principle of least privilege\n\n**Note:** See `man capabilities` for full list of Linux capabilities."
+        },
+        "mcp-process.security.advanced.readOnlyFilesystem": {
+          "type": "boolean",
+          "default": false,
+          "markdownDescription": "Mount filesystem as read-only for processes.\n\n**Security:** Prevents processes from modifying files.\n\n**Platform:** Unix/Linux only\n\n**Warning:** May break applications that need to write files"
+        },
+        "mcp-process.security.advanced.tmpfsSize": {
+          "type": "number",
+          "default": 64,
+          "minimum": 0,
+          "markdownDescription": "Temporary filesystem size limit in megabytes.\n\n**Security:** Limits temporary storage available to processes.\n\n**Platform:** Unix/Linux only\n\n**Default:** 64 MB"
+        },
+        "mcp-process.audit.enableAuditLog": {
+          "type": "boolean",
+          "default": true,
+          "markdownDescription": "Enable audit logging for process operations.\n\n**Audit:** Records all process launches, terminations, and security events.\n\n**Recommended:** `true` for production environments"
+        },
+        "mcp-process.audit.auditLogPath": {
+          "type": "string",
+          "default": "",
+          "markdownDescription": "Audit log file path.\n\n**Audit:** Location where audit logs are written.\n\n**Default:** Empty (uses default location: `~/.mcp-process/audit.log`)"
+        },
+        "mcp-process.audit.auditLogLevel": {
+          "type": "string",
+          "enum": [
+            "error",
+            "warn",
+            "info",
+            "debug"
+          ],
+          "default": "info",
+          "markdownDescription": "Audit log level.\n\n**Audit:**\n- `error`: Only errors\n- `warn`: Warnings and errors\n- `info`: Standard audit events\n- `debug`: Verbose audit logging"
+        },
+        "mcp-process.audit.enableSecurityAlerts": {
+          "type": "boolean",
+          "default": false,
+          "markdownDescription": "Enable real-time security alerts.\n\n**Audit:** Sends alerts for security violations.\n\n**Requires:** `securityAlertWebhook` must be set"
+        },
+        "mcp-process.audit.securityAlertWebhook": {
+          "type": "string",
+          "default": "",
+          "markdownDescription": "Alert webhook URL for security violations.\n\n**Audit:** HTTP endpoint to receive security alerts.\n\n**Required when:** `enableSecurityAlerts` is `true`\n\n**Example:** `https://hooks.slack.com/services/YOUR/WEBHOOK/URL`"
+        },
+        "mcp-process.audit.allowedTimeWindows": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "default": [],
+          "markdownDescription": "Allowed time windows for process launches (cron-like syntax).\n\n**Audit:** Processes can only be launched during these time windows. Useful for restricting operations to business hours.\n\n**Note:** Empty list means all times are allowed.\n\n**Cron Format:** `minute hour day month weekday`\n- `*` = any value\n- `1-5` = range (Monday-Friday)\n- `9-17` = range (9am-5pm)\n\n**Examples:**\n- `0 9-17 * * 1-5` - Weekdays 9am-5pm\n- `0 0-23 * * *` - All day, every day\n- `0 8-18 * * 1-5` - Business hours (8am-6pm, Mon-Fri)\n- `0 0-6 * * 0,6` - Weekends, midnight-6am\n- `*/15 * * * *` - Every 15 minutes\n\n**Use Cases:**\n- Restrict operations to business hours\n- Prevent after-hours process launches\n- Compliance requirements"
+        },
+        "mcp-process.audit.blockedTimeWindows": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "default": [],
+          "markdownDescription": "Blocked time windows for process launches (cron-like syntax).\n\n**Audit:** Processes cannot be launched during these time windows. Useful for maintenance windows or high-load periods.\n\n**Note:** Takes precedence over `allowedTimeWindows`.\n\n**Cron Format:** `minute hour day month weekday`\n\n**Examples:**\n- `0 0-6 * * *` - Midnight to 6am (maintenance window)\n- `0 12-13 * * *` - Lunch hour (12pm-1pm)\n- `0 22-23 * * *` - Late evening (10pm-11pm)\n- `0 0-23 * * 0` - All day Sunday\n- `0 2-4 * * *` - Backup window (2am-4am)\n\n**Use Cases:**\n- Maintenance windows\n- Backup periods\n- High-load periods\n- Scheduled downtime\n\n**Priority:** Blocked windows override allowed windows."
+        },
+        "mcp-process.ui.refreshInterval": {
+          "type": "number",
+          "default": 2000,
+          "minimum": 100,
+          "markdownDescription": "Process list refresh interval in milliseconds.\n\n**UI:** How often the process list is updated.\n\n**Default:** 2000 ms (2 seconds)\n\n**Performance:** Lower values increase CPU usage."
+        },
+        "mcp-process.ui.showResourceUsage": {
+          "type": "boolean",
+          "default": true,
+          "markdownDescription": "Show CPU and memory usage in process list.\n\n**UI:** Display resource usage metrics for each process.\n\n**Performance:** Disabling can improve UI performance."
+        },
+        "mcp-process.ui.showSecurityWarnings": {
+          "type": "boolean",
+          "default": true,
+          "markdownDescription": "Show security warnings in UI.\n\n**UI:** Display warnings for potentially dangerous operations.\n\n**Recommended:** `true` for all environments"
+        },
+        "mcp-process.ui.confirmDangerousOperations": {
+          "type": "boolean",
+          "default": true,
+          "markdownDescription": "Require confirmation for dangerous operations.\n\n**UI:** Show confirmation dialog for operations like forced termination.\n\n**Recommended:** `true` for all environments"
         }
       }
     }
@@ -200,15 +1044,16 @@
     "lint": "eslint src --ext ts",
     "vsce:login": "vsce login DigitalDefiance",
     "package": "vsce package --no-dependencies",
-    "publish": "vsce publish --no-dependencies"
+    "publish": "vsce publish --no-dependencies --allow-proposed-apis mcp"
   },
   "devDependencies": {
     "@types/glob": "^9.0.0",
     "@types/mocha": "^10.0.10",
     "@types/node": "^20.x",
-    "@types/vscode": "^1.85.0",
+    "@types/vscode": "^1.96.0",
     "@vscode/test-electron": "^2.3.8",
     "@vscode/vsce": "^3.7.1",
+    "fast-check": "^4.3.0",
     "glob": "^13.0.0",
     "mocha": "^11.7.5",
     "typescript": "^5.3.3"

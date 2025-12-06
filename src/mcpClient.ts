@@ -101,6 +101,8 @@ export class MCPProcessClient {
   >();
   public config: any = {};
   private outputChannel?: vscode.OutputChannel;
+  private serverConfig?: SecurityConfig;
+  private tempConfigPath?: string;
 
   constructor(configOrOutputChannel?: any) {
     if (configOrOutputChannel && configOrOutputChannel.appendLine) {
@@ -108,6 +110,14 @@ export class MCPProcessClient {
     } else if (configOrOutputChannel) {
       this.config = configOrOutputChannel;
     }
+  }
+
+  /**
+   * Set the server configuration to be passed via IPC
+   * @param config The SecurityConfig to pass to the server
+   */
+  public setServerConfig(config: SecurityConfig): void {
+    this.serverConfig = config;
   }
 
   async connect(): Promise<void> {
@@ -120,8 +130,9 @@ export class MCPProcessClient {
 
   async start(): Promise<void> {
     const config = vscode.workspace.getConfiguration("mcp-process");
-    const serverPath = config.get<string>("serverPath");
-    const configPath = config.get<string>("configPath");
+    const serverPath = config.get<string>("server.serverPath");
+    const configPath = config.get<string>("server.configPath");
+    const useConfigFile = config.get<boolean>("server.useConfigFile", false);
 
     // Determine server executable
     let serverCommand: string;
@@ -134,8 +145,27 @@ export class MCPProcessClient {
 
     // Build arguments
     const args: string[] = [];
-    if (configPath && configPath.length > 0) {
+
+    // Handle configuration
+    if (useConfigFile && configPath && configPath.length > 0) {
+      // Use the specified config file
       args.push("--config", configPath);
+    } else if (this.serverConfig) {
+      // Create a temporary config file for the server
+      const fs = require("fs");
+      const os = require("os");
+      const path = require("path");
+
+      const tempPath = path.join(os.tmpdir(), `mcp-process-${Date.now()}.json`);
+      fs.writeFileSync(tempPath, JSON.stringify(this.serverConfig, null, 2));
+      this.tempConfigPath = tempPath;
+      args.push("--config", tempPath);
+
+      if (this.outputChannel) {
+        this.outputChannel.appendLine(
+          `Created temporary config file: ${tempPath}`
+        );
+      }
     }
 
     if (this.outputChannel) {
@@ -213,6 +243,28 @@ export class MCPProcessClient {
         reject(new Error("Server process exited"));
       }
       this.pendingRequests.clear();
+
+      // Clean up temp config file if it exists
+      if (this.tempConfigPath) {
+        try {
+          const fs = require("fs");
+          if (fs.existsSync(this.tempConfigPath)) {
+            fs.unlinkSync(this.tempConfigPath);
+            if (this.outputChannel) {
+              this.outputChannel.appendLine(
+                `Cleaned up temporary config file: ${this.tempConfigPath}`
+              );
+            }
+          }
+        } catch (error) {
+          if (this.outputChannel) {
+            this.outputChannel.appendLine(
+              `Failed to clean up temp config: ${error}`
+            );
+          }
+        }
+        this.tempConfigPath = undefined;
+      }
     });
 
     // Initialize MCP protocol
@@ -245,6 +297,28 @@ export class MCPProcessClient {
     if (this.serverProcess) {
       this.serverProcess.kill();
       this.serverProcess = undefined;
+    }
+
+    // Clean up temp config file if it exists
+    if (this.tempConfigPath) {
+      try {
+        const fs = require("fs");
+        if (fs.existsSync(this.tempConfigPath)) {
+          fs.unlinkSync(this.tempConfigPath);
+          if (this.outputChannel) {
+            this.outputChannel.appendLine(
+              `Cleaned up temporary config file: ${this.tempConfigPath}`
+            );
+          }
+        }
+      } catch (error) {
+        if (this.outputChannel) {
+          this.outputChannel.appendLine(
+            `Failed to clean up temp config: ${error}`
+          );
+        }
+      }
+      this.tempConfigPath = undefined;
     }
   }
 
@@ -320,6 +394,59 @@ export class MCPProcessClient {
       enableAuditLog: false,
       requireConfirmation: false,
     };
+  }
+
+  async getProcessOutput(params: {
+    pid: number;
+    lines?: number;
+  }): Promise<{ output: string }> {
+    const result = await this.callTool("process_get_output", params);
+    return result;
+  }
+
+  async sendProcessInput(params: { pid: number; data: string }): Promise<void> {
+    await this.callTool("process_send_stdin", params);
+  }
+
+  async getProcessStatus(params: { pid: number }): Promise<ProcessInfo> {
+    const result = await this.callTool("process_get_status", params);
+    return result;
+  }
+
+  async createProcessGroup(params: {
+    name: string;
+    pids?: number[];
+  }): Promise<{ groupId: string }> {
+    const result = await this.callTool("process_create_group", params);
+    return result;
+  }
+
+  async addToProcessGroup(params: {
+    groupName: string;
+    pid: number;
+  }): Promise<void> {
+    await this.callTool("process_add_to_group", params);
+  }
+
+  async terminateProcessGroup(params: {
+    groupName: string;
+    force?: boolean;
+  }): Promise<void> {
+    await this.callTool("process_terminate_group", params);
+  }
+
+  async startService(params: {
+    name: string;
+    executable: string;
+    args?: string[];
+    autoRestart?: boolean;
+  }): Promise<{ serviceId: string }> {
+    const result = await this.callTool("process_start_service", params);
+    return result;
+  }
+
+  async stopService(params: { name: string }): Promise<void> {
+    await this.callTool("process_stop_service", params);
   }
 
   getConfig(): any {

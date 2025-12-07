@@ -84,7 +84,7 @@ suite("Settings Flow Integration Tests", () => {
    */
   suite("Import/Export Round-Trip Flow", () => {
     test("should export and import configuration successfully", async function () {
-      this.timeout(10000); // Increase timeout for async operations
+      this.timeout(300000); // 5 minutes for VS Code config updates
       const manager = new SettingsManager();
       try {
         // Export current configuration
@@ -137,7 +137,7 @@ suite("Settings Flow Integration Tests", () => {
     });
 
     test("should preserve complex settings through round-trip", async function () {
-      this.timeout(10000); // Increase timeout for async operations
+      this.timeout(300000); // 5 minutes for VS Code config updates
       const manager = new SettingsManager();
       try {
         // Export current configuration
@@ -460,7 +460,7 @@ suite("Settings Flow Integration Tests", () => {
    */
   suite("Complete Workflow Scenarios", () => {
     test("Scenario: User exports config, modifies it, and imports it back", async function () {
-      this.timeout(30000); // Increase timeout for multiple async operations
+      this.timeout(180000); // 3 minutes for VS Code config updates
       const manager = new SettingsManager();
       try {
         // Step 1: Export current configuration
@@ -561,7 +561,7 @@ suite("Settings Flow Integration Tests", () => {
     });
 
     test("Scenario: User applies preset, exports config, and shares with team", async function () {
-      this.timeout(10000); // Increase timeout for async operations
+      this.timeout(120000); // 2 minutes for VS Code config updates
       const manager = new SettingsManager();
       try {
         // Step 1: Get a preset

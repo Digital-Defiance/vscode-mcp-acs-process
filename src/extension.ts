@@ -26,6 +26,7 @@ let refreshInterval: NodeJS.Timeout | undefined;
 let languageClient: LanguageClient | undefined;
 let pendingRestart = false;
 let statusBarItem: vscode.StatusBarItem | undefined;
+let permanentStatusBarItem: vscode.StatusBarItem | undefined;
 
 /**
  * Settings that require server restart when changed
@@ -1272,6 +1273,18 @@ export async function activate(context: vscode.ExtensionContext) {
   );
   context.subscriptions.push(statusBarItem);
 
+  // Create permanent status bar item
+  permanentStatusBarItem = vscode.window.createStatusBarItem(
+    vscode.StatusBarAlignment.Right,
+    98
+  );
+  permanentStatusBarItem.text = "$(terminal) Process";
+  permanentStatusBarItem.tooltip = "MCP Process Manager - Click to start process";
+  permanentStatusBarItem.command = "mcp-process.startProcess";
+  permanentStatusBarItem.backgroundColor = undefined;
+  permanentStatusBarItem.show();
+  context.subscriptions.push(permanentStatusBarItem);
+
   // Check for first run and show welcome experience (skip in test mode unless LSP tests)
   if (!isTestMode || isLSPTest) {
     await checkFirstRunExperience(context);
@@ -1479,6 +1492,9 @@ export async function deactivate() {
   }
   if (statusBarItem) {
     statusBarItem.dispose();
+  }
+  if (permanentStatusBarItem) {
+    permanentStatusBarItem.dispose();
   }
   if (languageClient) {
     await languageClient.stop();

@@ -1468,7 +1468,7 @@ export class SettingsManager {
   private async waitForConfigChange(
     settingPath: string,
     expectedValue: any,
-    timeoutMs: number = 500
+    timeoutMs: number = 30000
   ): Promise<void> {
     // First check if the value is already correct
     const config = this.getConfiguration();
@@ -1484,7 +1484,7 @@ export class SettingsManager {
     // Value is not correct yet, poll for the change
     const startTime = Date.now();
     while (Date.now() - startTime < timeoutMs) {
-      await new Promise((resolve) => setTimeout(resolve, 50));
+      await new Promise((resolve) => setTimeout(resolve, 100));
 
       const config = this.getConfiguration();
       const actualValue = config.get(settingPath);

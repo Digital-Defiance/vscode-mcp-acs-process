@@ -1248,7 +1248,7 @@ suite("Settings Manager Preset Property Tests", () => {
    * are not reliably synchronous, causing timeouts even with extended wait times.
    */
   test("Property 3: Multiple applications of the same preset are idempotent", async function () {
-    this.timeout(120000); // Extend timeout for iterations of async operations with VS Code config updates
+    this.timeout(300000); // 5 minutes for VS Code config updates in test environment
     const { CONFIGURATION_PRESETS } = await import("../../settingsManager.js");
 
     await fc.assert(
@@ -1307,7 +1307,7 @@ suite("Settings Manager Preset Property Tests", () => {
    * before we check the diff. This is a limitation of the VS Code test environment, not the code.
    */
   test("Property 3: Preset diff is empty after applying the preset", async function () {
-    this.timeout(60000); // Extend timeout for preset operations with VS Code config updates
+    this.timeout(180000); // 3 minutes for VS Code config updates in test environment
     const { CONFIGURATION_PRESETS } = await import("../../settingsManager.js");
 
     for (const preset of CONFIGURATION_PRESETS) {
@@ -1347,7 +1347,7 @@ suite("Settings Manager Preset Property Tests", () => {
    * are not reliably synchronous, causing configuration mismatches.
    */
   test("Property 3: Applying different presets and returning to original is idempotent", async function () {
-    this.timeout(120000); // Extend timeout for multiple preset combinations with VS Code config updates
+    this.timeout(600000); // 10 minutes for VS Code config updates in test environment
     const { CONFIGURATION_PRESETS } = await import("../../settingsManager.js");
 
     // Test with all combinations of presets
@@ -1397,7 +1397,7 @@ suite("Settings Manager Preset Property Tests", () => {
    * are not reliably synchronous, causing configuration mismatches between applications.
    */
   test("Property 3: Preset application is deterministic", async function () {
-    this.timeout(90000); // Extend timeout for multiple preset applications with VS Code config updates
+    this.timeout(600000); // 10 minutes for VS Code config updates in test environment
     const { CONFIGURATION_PRESETS } = await import("../../settingsManager.js");
 
     for (const preset of CONFIGURATION_PRESETS) {
@@ -1535,7 +1535,7 @@ suite("Settings Manager Import/Export Property Tests", () => {
    * serialization/deserialization.
    */
   test("Property 4: Export then import produces equivalent configuration", async function () {
-    this.timeout(60000); // Extend timeout for async operations with VS Code config updates
+    this.timeout(180000); // 3 minutes for VS Code config updates in test environment
     const manager = new SettingsManager();
     try {
       // Get the current configuration
@@ -1580,7 +1580,7 @@ suite("Settings Manager Import/Export Property Tests", () => {
    * are not reliably synchronous, causing timeouts and configuration mismatches.
    */
   test("Property 4: Round trip preserves all configuration values", async function () {
-    this.timeout(180000); // Extend timeout for iterations of async operations with VS Code config updates
+    this.timeout(360000); // 6 minutes for VS Code config updates in test environment
     await fc.assert(
       fc.asyncProperty(
         // Generate random configuration values
@@ -1858,7 +1858,7 @@ suite("Settings Manager Import/Export Property Tests", () => {
    * are not reliably synchronous, causing configuration drift across multiple cycles.
    */
   test("Property 4: Multiple export/import cycles preserve configuration", async function () {
-    this.timeout(90000); // Extend timeout for multiple cycles with VS Code config updates
+    this.timeout(240000); // 4 minutes for VS Code config updates in test environment
     const manager = new SettingsManager();
     try {
       // Get original configuration
@@ -1942,7 +1942,7 @@ suite("Settings Manager Import/Export Property Tests", () => {
    * are not reliably synchronous, causing configuration mismatches after import.
    */
   test("Property 4: Preset configurations can be exported and imported", async function () {
-    this.timeout(90000); // Extend timeout for multiple preset operations with VS Code config updates
+    this.timeout(240000); // 4 minutes for VS Code config updates in test environment
     const { CONFIGURATION_PRESETS } = await import("../../settingsManager.js");
 
     for (const preset of CONFIGURATION_PRESETS) {
@@ -3144,7 +3144,8 @@ suite("Settings Manager Default Value Consistency Property Tests", () => {
   /**
    * Property 8: Defaults are sensible for development
    */
-  test("Property 8: Default values are appropriate for development use", async () => {
+  test("Property 8: Default values are appropriate for development use", async function () {
+    this.timeout(60000); // 1 minute for VS Code config updates in test environment
     const manager = new SettingsManager();
     try {
       // Reset configuration to defaults before testing

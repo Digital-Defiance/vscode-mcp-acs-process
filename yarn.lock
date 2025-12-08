@@ -21,6 +21,15 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@ai-capabilities-suite/vscode-shared-status-bar@npm:^1.0.8":
+  version: 1.0.8
+  resolution: "@ai-capabilities-suite/vscode-shared-status-bar@npm:1.0.8"
+  peerDependencies:
+    vscode: ^1.80.0
+  checksum: 10c0/e82e301c30a120c62be46a3e95d3303afdaf56f37a22a9e507b5ca27ba3dc7ed7d4025173eda9cd9747e0ac66494e9db06604a3b89e8aa88390689ccb5ceb114
+  languageName: node
+  linkType: hard
+
 "@azu/format-text@npm:^1.0.1, @azu/format-text@npm:^1.0.2":
   version: 1.0.2
   resolution: "@azu/format-text@npm:1.0.2"
@@ -541,7 +550,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@types/vscode@npm:^1.85.0":
+"@types/vscode@npm:^1.96.0":
   version: 1.106.1
   resolution: "@types/vscode@npm:1.106.1"
   checksum: 10c0/699bb2b1932cf885bc863d1a978eeb07f263150544f56eb7a2b59f4ed521e654f9a5f3357c5b3a45e56af07b876e7936140075ba4a2acaa9641a8ad8e0ab9f05
@@ -2635,11 +2644,12 @@ __metadata:
   resolution: "mcp-acs-process@workspace:."
   dependencies:
     "@ai-capabilities-suite/mcp-process": "npm:^0.1.0"
+    "@ai-capabilities-suite/vscode-shared-status-bar": "npm:^1.0.8"
     "@modelcontextprotocol/sdk": "npm:^0.5.0"
     "@types/glob": "npm:^9.0.0"
     "@types/mocha": "npm:^10.0.10"
     "@types/node": "npm:^20.x"
-    "@types/vscode": "npm:^1.85.0"
+    "@types/vscode": "npm:^1.96.0"
     "@vscode/test-electron": "npm:^2.3.8"
     "@vscode/vsce": "npm:^3.7.1"
     fast-check: "npm:^4.3.0"

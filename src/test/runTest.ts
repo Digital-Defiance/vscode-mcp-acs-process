@@ -14,8 +14,9 @@ async function main() {
       extensionDevelopmentPath,
       extensionTestsPath,
       launchArgs: [
-        "--disable-extensions", // Disable other extensions during tests
-        "--disable-workspace-trust", // Disable workspace trust prompts
+        "--disable-extensions",
+        "--disable-workspace-trust",
+        "--disable-gpu",
       ],
       extensionTestsEnv: {
         VSCODE_TEST_MODE: "true", // Signal to extension that we're in test mode

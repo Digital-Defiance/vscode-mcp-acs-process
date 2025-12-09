@@ -55,19 +55,7 @@ connection.onInitialize((params: InitializeParams) => {
         resolveProvider: true,
       },
       executeCommandProvider: {
-        commands: [
-          "mcp.process.start",
-          "mcp.process.terminate",
-          "mcp.process.getStats",
-          "mcp.process.list",
-          "mcp.process.sendStdin",
-          "mcp.process.getOutput",
-          "mcp.process.createGroup",
-          "mcp.process.addToGroup",
-          "mcp.process.terminateGroup",
-          "mcp.process.startService",
-          "mcp.process.stopService",
-        ],
+        commands: [],
       },
       completionProvider: {
         resolveProvider: true,

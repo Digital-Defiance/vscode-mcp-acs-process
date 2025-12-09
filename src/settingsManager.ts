@@ -636,9 +636,18 @@ export class SettingsManager {
     };
 
     // Build the complete SecurityConfig
+    let allowedExecutables = config.get<string[]>(
+      "executable.allowedExecutables",
+      []
+    );
+    // If allowlist is empty, allow all executables (wildcard) to satisfy server validation
+    if (allowedExecutables.length === 0) {
+      allowedExecutables = ["*"];
+    }
+
     const serverConfig: SecurityConfig = {
       // Executable Control
-      allowedExecutables: config.get("executable.allowedExecutables", []),
+      allowedExecutables,
       blockSetuidExecutables: config.get(
         "executable.blockSetuidExecutables",
         true

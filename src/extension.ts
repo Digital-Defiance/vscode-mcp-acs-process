@@ -17,6 +17,7 @@ import { ErrorHandler } from "./errorHandling";
 import {
   registerExtension,
   unregisterExtension,
+  setOutputChannel,
 } from "@ai-capabilities-suite/vscode-shared-status-bar";
 
 let mcpClient: MCPProcessClient | undefined;
@@ -1471,14 +1472,44 @@ export async function activate(context: vscode.ExtensionContext) {
   outputChannel.appendLine("MCP Process Manager extension activated");
 
   // Register with shared status bar
-  registerExtension("mcp-acs-process");
+  await registerExtension("mcp-acs-process", {
+    displayName: "MCP Process Manager",
+    status: "ok",
+    settingsQuery: "mcp-process",
+    actions: [
+      {
+        label: "View Processes",
+        command: "mcp-process.viewProcesses",
+        description: "List running processes",
+      },
+      {
+        label: "View Statistics",
+        command: "mcp-process.viewStats",
+        description: "Show resource usage",
+      },
+      {
+        label: "Security Boundaries",
+        command: "mcp-process.showSecurityBoundaries",
+        description: "View security configuration",
+      },
+      {
+        label: "Restart Server",
+        command: "mcp-process.restartServer",
+        description: "Restart MCP server",
+      },
+    ],
+  });
+
+  // Configure shared status bar output channel (idempotent - only first call takes effect)
+  setOutputChannel(outputChannel);
+
   context.subscriptions.push({
     dispose: () => unregisterExtension("mcp-acs-process"),
   });
 }
 
 export async function deactivate() {
-  unregisterExtension("mcp-acs-process");
+  await unregisterExtension("mcp-acs-process");
   if (refreshInterval) {
     clearInterval(refreshInterval);
   }

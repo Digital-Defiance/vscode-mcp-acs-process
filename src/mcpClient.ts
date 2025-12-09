@@ -136,15 +136,63 @@ export class MCPProcessClient {
 
     // Determine server executable
     let serverCommand: string;
-    if (serverPath && serverPath.length > 0) {
-      serverCommand = serverPath;
-    } else {
-      // Try to use global installation
-      serverCommand = "mcp-process";
-    }
+    let args: string[] = [];
 
-    // Build arguments
-    const args: string[] = [];
+    if (process.env.VSCODE_TEST_MODE === "true") {
+      try {
+        // In test mode, use the local build
+        // We need to find the extension path to resolve the relative path to the server
+        let extensionPath = "";
+        const extension = vscode.extensions.getExtension(
+          "DigitalDefiance.mcp-acs-process"
+        );
+        if (extension) {
+          extensionPath = extension.extensionPath;
+        }
+
+        if (extensionPath) {
+          serverCommand = "node";
+          const serverScript = path.resolve(
+            extensionPath,
+            "../mcp-process/dist/cli.js"
+          );
+          args = [serverScript];
+          if (this.outputChannel) {
+            this.outputChannel.appendLine(
+              `Test mode: Using local server at ${serverScript}`
+            );
+          }
+        } else {
+          if (this.outputChannel) {
+            this.outputChannel.appendLine(
+              "Test mode: Could not find extension path, falling back to configuration"
+            );
+          }
+          if (serverPath && serverPath.length > 0) {
+            serverCommand = serverPath;
+          } else {
+            serverCommand = "mcp-process";
+          }
+        }
+      } catch (error) {
+        if (this.outputChannel) {
+          this.outputChannel.appendLine(`Test mode error: ${error}`);
+        }
+        if (serverPath && serverPath.length > 0) {
+          serverCommand = serverPath;
+        } else {
+          serverCommand = "mcp-process";
+        }
+      }
+    } else {
+      if (serverPath && serverPath.length > 0) {
+        serverCommand = serverPath;
+      } else {
+        // Use npx to run the server
+        serverCommand = "npx";
+        args = ["-y", "@ai-capabilities-suite/mcp-process"];
+      }
+    }
 
     // Handle configuration
     if (useConfigFile && configPath && configPath.length > 0) {

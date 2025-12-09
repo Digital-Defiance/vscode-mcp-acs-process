@@ -5,9 +5,9 @@ __metadata:
   version: 8
   cacheKey: 10c0
 
-"@ai-capabilities-suite/mcp-process@npm:^0.1.0":
-  version: 0.1.0
-  resolution: "@ai-capabilities-suite/mcp-process@npm:0.1.0"
+"@ai-capabilities-suite/mcp-process@npm:^0.1.3":
+  version: 0.1.3
+  resolution: "@ai-capabilities-suite/mcp-process@npm:0.1.3"
   dependencies:
     "@modelcontextprotocol/sdk": "npm:^1.23.0"
     minimatch: "npm:^10.0.1"
@@ -17,16 +17,16 @@ __metadata:
     zod: "npm:^4.1.13"
   bin:
     mcp-process: dist/cli.js
-  checksum: 10c0/1acc26643a65547c42376052f3ccdc802a9870e1abefeb7812700d0654b7a8bee1aa3e0ed1d63e853e2a49822266148718d837b84c5eac6f66b0afb3c578b744
+  checksum: 10c0/96ae8f9a72692994a7404db4f9520c1c5d6a0c25e14ebb093666ac30f5926ccdeca329f45d9bc5ecf454c636f719f70bd2a7ff68ce29aa9d58ba450cf93e2a78
   languageName: node
   linkType: hard
 
-"@ai-capabilities-suite/vscode-shared-status-bar@npm:^1.0.14":
-  version: 1.0.14
-  resolution: "@ai-capabilities-suite/vscode-shared-status-bar@npm:1.0.14"
+"@ai-capabilities-suite/vscode-shared-status-bar@npm:^1.0.21":
+  version: 1.0.21
+  resolution: "@ai-capabilities-suite/vscode-shared-status-bar@npm:1.0.21"
   peerDependencies:
     vscode: ^1.80.0
-  checksum: 10c0/74b76d9b145324dfa4891b9d2079be15cd3d9cd81b19192666f63e0b36d0d6b4279b72e5c83e4fda7b08b088c60d38d2f7d1519c28277494b7bdf7b968d9aeca
+  checksum: 10c0/857134e9b10f11c7eee62b36a0555aff341ebf6d45d0b32dcf81bc28f30c5ff8560cbba96e80f7e7ee0f5a5fb4b1d6a6d02237fd37988dc5a8286c41a52dc9a0
   languageName: node
   linkType: hard
 
@@ -641,55 +641,55 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@textlint/ast-node-types@npm:15.4.1":
-  version: 15.4.1
-  resolution: "@textlint/ast-node-types@npm:15.4.1"
-  checksum: 10c0/ff7d953aafc8bae594b5fbff3cda0b60c89e625fd73ec6cd4aff45bc4ba3f313dcda1ad78c61f9d8ebf6741348ac7eb46bc3b20532f635bcba40bb8deda6c689
+"@textlint/ast-node-types@npm:15.5.0":
+  version: 15.5.0
+  resolution: "@textlint/ast-node-types@npm:15.5.0"
+  checksum: 10c0/9183aae4ce5cfef49271ee03b3d1aad11851ee0d550d8550816d2e52280df93cf828af88fd7bff5f43e3fc83525573df6b88046785a483cb95baf46d52c43587
   languageName: node
   linkType: hard
 
 "@textlint/linter-formatter@npm:^15.2.0":
-  version: 15.4.1
-  resolution: "@textlint/linter-formatter@npm:15.4.1"
+  version: 15.5.0
+  resolution: "@textlint/linter-formatter@npm:15.5.0"
   dependencies:
     "@azu/format-text": "npm:^1.0.2"
     "@azu/style-format": "npm:^1.0.1"
-    "@textlint/module-interop": "npm:15.4.1"
-    "@textlint/resolver": "npm:15.4.1"
-    "@textlint/types": "npm:15.4.1"
+    "@textlint/module-interop": "npm:15.5.0"
+    "@textlint/resolver": "npm:15.5.0"
+    "@textlint/types": "npm:15.5.0"
     chalk: "npm:^4.1.2"
     debug: "npm:^4.4.3"
-    js-yaml: "npm:^4.1.0"
+    js-yaml: "npm:^4.1.1"
     lodash: "npm:^4.17.21"
     pluralize: "npm:^2.0.0"
     string-width: "npm:^4.2.3"
     strip-ansi: "npm:^6.0.1"
     table: "npm:^6.9.0"
     text-table: "npm:^0.2.0"
-  checksum: 10c0/91de238a0c36755aa85ac7e7d57e7d3cb480162e43bc9d191ec1369eb1a105b95bbc20d73aee7bedf901ed0b03821199680f83bab9757e4d060686c8aa40a037
+  checksum: 10c0/74f4536812e371bb255fdc36be6d5c45c867c98705ffb8338277891647c45ff979d19aea065923b8551ddafa7ca6e5bd4ff6aef8f55ab3b61510975556526490
   languageName: node
   linkType: hard
 
-"@textlint/module-interop@npm:15.4.1, @textlint/module-interop@npm:^15.2.0":
-  version: 15.4.1
-  resolution: "@textlint/module-interop@npm:15.4.1"
-  checksum: 10c0/268dd7a6ae0722b5120429c938b885a6188593a110d49732939e6628c2013252891936285e7bad6c5881d3597c05b582af6f2ecd9f04944dfd7442d54a1121fc
+"@textlint/module-interop@npm:15.5.0, @textlint/module-interop@npm:^15.2.0":
+  version: 15.5.0
+  resolution: "@textlint/module-interop@npm:15.5.0"
+  checksum: 10c0/bb6c38537dcfe7a7f7e0f984567b7c9f024c47274db09c7a2fcbf12abcfb6286c0b1d22a8414f8c9ce1dbb687fc3d21c16b0a15dbe5a8740b62fe5059f08d7b8
   languageName: node
   linkType: hard
 
-"@textlint/resolver@npm:15.4.1":
-  version: 15.4.1
-  resolution: "@textlint/resolver@npm:15.4.1"
-  checksum: 10c0/c4048fc2a1d156f456ff9e7bae8512bb948923bcd74e747e87d4be498a18b59079afb4db465bcd7543a4e6f3b99c0f11f94773a9f53ea3e4363b6cd2dc184535
+"@textlint/resolver@npm:15.5.0":
+  version: 15.5.0
+  resolution: "@textlint/resolver@npm:15.5.0"
+  checksum: 10c0/cf988089f0e09a77cfb508c7e1618ad03814c5d4e8ef3d1ae5adb30176050252fdcae4ec538d7a298536c4fbdd54e9c95ac6cb27247ddc61a1ecbd0619e688da
   languageName: node
   linkType: hard
 
-"@textlint/types@npm:15.4.1, @textlint/types@npm:^15.2.0":
-  version: 15.4.1
-  resolution: "@textlint/types@npm:15.4.1"
+"@textlint/types@npm:15.5.0, @textlint/types@npm:^15.2.0":
+  version: 15.5.0
+  resolution: "@textlint/types@npm:15.5.0"
   dependencies:
-    "@textlint/ast-node-types": "npm:15.4.1"
-  checksum: 10c0/4cff242ee4aa59f2626dda108590d7c7fe894c6b435d3647c2028fe262600a771c3771d3e9e576e51fbfe69057231955d1838798b5de93b0e0c9c67bc73f3570
+    "@textlint/ast-node-types": "npm:15.5.0"
+  checksum: 10c0/f08e35add84c14919692040c3881733a369ba8fc0941804e98d7bcbe1ab32bd850e8ace79b43cbf62bfe1f148154f168587246215eaeba2e7c2613c2e84e5514
   languageName: node
   linkType: hard
 
@@ -1934,11 +1934,11 @@ __metadata:
   linkType: hard
 
 "fast-check@npm:^4.3.0":
-  version: 4.3.0
-  resolution: "fast-check@npm:4.3.0"
+  version: 4.4.0
+  resolution: "fast-check@npm:4.4.0"
   dependencies:
     pure-rand: "npm:^7.0.0"
-  checksum: 10c0/91d73395d6a7523f94514c9c2bda7452c506e73f9d68e77eb45cc83c525c9cc01c5b4331cc18607219f0327ab2dc83963e45c9216e7fd6d85b49b871b4ea2033
+  checksum: 10c0/8bd1a0c772cde26901f165356f91def147da6eee5c27b392944392ad0cf2412b0aac7dd1614cdc6c6bb58bb5bfed20eb9c3997a8c042162e3f090f6198964974
   languageName: node
   linkType: hard
 
@@ -2619,7 +2619,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"js-yaml@npm:^4.1.0":
+"js-yaml@npm:^4.1.0, js-yaml@npm:^4.1.1":
   version: 4.1.1
   resolution: "js-yaml@npm:4.1.1"
   dependencies:
@@ -2914,8 +2914,8 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "mcp-acs-process@workspace:."
   dependencies:
-    "@ai-capabilities-suite/mcp-process": "npm:^0.1.0"
-    "@ai-capabilities-suite/vscode-shared-status-bar": "npm:^1.0.14"
+    "@ai-capabilities-suite/mcp-process": "npm:^0.1.3"
+    "@ai-capabilities-suite/vscode-shared-status-bar": "npm:^1.0.21"
     "@modelcontextprotocol/sdk": "npm:^0.5.0"
     "@types/glob": "npm:^9.0.0"
     "@types/mocha": "npm:^10.0.10"

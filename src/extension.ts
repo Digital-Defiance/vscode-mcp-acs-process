@@ -797,7 +797,7 @@ async function configureMcpServer(): Promise<void> {
   mcpConfig.servers = mcpConfig.servers || {};
   mcpConfig.servers[serverName] = {
     type: "stdio",
-    command: "npx",
+    command: process.platform === "win32" ? "npx.cmd" : "npx",
     args: ["-y", "@ai-capabilities-suite/mcp-process"],
   };
 

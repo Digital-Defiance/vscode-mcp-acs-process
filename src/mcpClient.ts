@@ -189,29 +189,25 @@ export class MCPProcessClient {
         serverCommand = serverPath;
       } else {
         // Use npx to run the server
-        serverCommand = "npx";
+        serverCommand = process.platform === "win32" ? "npx.cmd" : "npx";
         args = ["-y", "@ai-capabilities-suite/mcp-process"];
       }
     }
+
+    // Prepare environment variables
+    const env = { ...process.env };
 
     // Handle configuration
     if (useConfigFile && configPath && configPath.length > 0) {
       // Use the specified config file
       args.push("--config", configPath);
     } else if (this.serverConfig) {
-      // Create a temporary config file for the server
-      const fs = require("fs");
-      const os = require("os");
-      const path = require("path");
-
-      const tempPath = path.join(os.tmpdir(), `mcp-process-${Date.now()}.json`);
-      fs.writeFileSync(tempPath, JSON.stringify(this.serverConfig, null, 2));
-      this.tempConfigPath = tempPath;
-      args.push("--config", tempPath);
+      // Pass configuration via environment variable to avoid path issues across OS boundaries (WSL/Windows)
+      env["MCP_PROCESS_CONFIG"] = JSON.stringify(this.serverConfig);
 
       if (this.outputChannel) {
         this.outputChannel.appendLine(
-          `Created temporary config file: ${tempPath}`
+          `Passing configuration via MCP_PROCESS_CONFIG environment variable`
         );
       }
     }
@@ -225,6 +221,7 @@ export class MCPProcessClient {
     // Spawn server process
     this.serverProcess = child_process.spawn(serverCommand, args, {
       stdio: ["pipe", "pipe", "pipe"],
+      env,
     });
 
     // Handle spawn errors immediately

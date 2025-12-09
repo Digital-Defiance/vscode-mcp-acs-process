@@ -2,7 +2,7 @@
   "name": "mcp-acs-process",
   "displayName": "MCP ACS Process Manager",
   "description": "Process management for AI agents with MCP integration and security boundaries. Part of the Digital Defiance AI Capabilities Suite.",
-  "version": "1.5.6",
+  "version": "0.1.4",
   "packageManager": "yarn@4.12.0",
   "publisher": "DigitalDefiance",
   "icon": "images/icon.png",
@@ -1057,7 +1057,7 @@
     "typescript": "^5.3.3"
   },
   "dependencies": {
-    "@ai-capabilities-suite/mcp-process": "^0.1.3",
+    "@ai-capabilities-suite/mcp-process": "^0.1.4",
     "@ai-capabilities-suite/vscode-shared-status-bar": "^1.0.21",
     "@modelcontextprotocol/sdk": "^0.5.0",
     "vscode-languageclient": "^10.0.0-next.15",

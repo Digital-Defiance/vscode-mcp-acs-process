@@ -1,10 +1,10 @@
 # Publishing Guide
 
-This guide explains how to publish the MCP Process Manager extension to the VS Code Marketplace.
+This guide explains how to publish the MCP ACS Process Manager extension to the VS Code Marketplace.
 
 ## Prerequisites
 
-1. **VS Code Account**: Create a publisher account at https://marketplace.visualstudio.com/manage
+1. **VS Code Account**: Create a publisher account at <https://marketplace.visualstudio.com/manage>
 2. **Personal Access Token**: Generate a PAT from Azure DevOps
 3. **vsce**: Install the VS Code Extension Manager CLI tool
 
@@ -14,7 +14,7 @@ npm install -g @vscode/vsce
 
 ## Step 1: Create Publisher Account
 
-1. Go to https://marketplace.visualstudio.com/manage
+1. Go to <https://marketplace.visualstudio.com/manage>
 2. Sign in with your Microsoft account
 3. Click "Create publisher"
 4. Fill in the details:
@@ -25,7 +25,7 @@ npm install -g @vscode/vsce
 
 ## Step 2: Generate Personal Access Token
 
-1. Go to https://dev.azure.com/
+1. Go to <https://dev.azure.com/>
 2. Click on your profile → Security
 3. Click "Personal access tokens"
 4. Click "New Token"
@@ -91,6 +91,7 @@ Create a 128x128 PNG icon and save it as `images/icon.png`.
    - Check for errors in Output panel
 
 3. Run tests:
+
    ```bash
    npm test
    ```
@@ -163,7 +164,7 @@ vsce publish --pre-release
 
 ## Step 7: Verify Publication
 
-1. Go to https://marketplace.visualstudio.com/items?itemName=DigitalDefiance.mcp-process-manager
+1. Go to <https://marketplace.visualstudio.com/items?itemName=DigitalDefiance.mcp-process-manager>
 2. Verify:
 
    - Extension appears correctly

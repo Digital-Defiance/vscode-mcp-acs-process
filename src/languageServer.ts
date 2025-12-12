@@ -100,7 +100,7 @@ connection.onInitialized(() => {
     );
   }
 
-  connection.console.log("MCP Process Language Server initialized");
+  connection.console.log("MCP ACS Process Language Server initialized");
 });
 
 documents.onDidOpen((event: any) => {
@@ -179,7 +179,7 @@ connection.onHover(async (params: any): Promise<Hover | null> => {
         value: [
           `**Process Management: ${word}**`,
           "",
-          "MCP Process Manager provides secure process management.",
+          "MCP ACS Process Manager provides secure process management.",
         ].join("\n"),
       },
     };
@@ -571,7 +571,7 @@ connection.onCodeAction(async (params: any): Promise<any[]> => {
 
   if (selectedText.includes("spawn(")) {
     codeActions.push({
-      title: "Convert to MCP Process Manager",
+      title: "Convert to MCP ACS Process Manager",
       kind: "refactor",
       edit: {
         changes: {
@@ -579,7 +579,7 @@ connection.onCodeAction(async (params: any): Promise<any[]> => {
             {
               range: range,
               newText:
-                "// TODO: Use MCP Process Manager for secure process execution",
+                "// TODO: Use MCP ACS Process Manager for secure process execution",
             },
           ],
         },

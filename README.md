@@ -1,4 +1,4 @@
-# MCP Process Manager for VS Code
+# MCP ACS Process Manager for VS Code
 
 Process management for AI agents with MCP integration and security boundaries. Launch, monitor, and control processes directly from VS Code with comprehensive security enforcement.
 
@@ -64,10 +64,10 @@ This package is part of the [AI Capabilities Suite](https://github.com/Digital-D
 
 1. Open VS Code
 2. Go to Extensions (Ctrl+Shift+X / Cmd+Shift+X)
-3. Search for "MCP Process Manager"
+3. Search for "MCP ACS Process Manager"
 4. Click Install
 
-### Install the MCP Process Server
+### Install the MCP ACS Process Server
 
 The extension requires the MCP process server. Install it globally:
 
@@ -124,7 +124,7 @@ Open VS Code settings (Ctrl+, / Cmd+,) and set:
 
 ### 3. Open the Process Manager
 
-1. Click the MCP Process Manager icon in the Activity Bar (left sidebar)
+1. Click the MCP ACS Process Manager icon in the Activity Bar (left sidebar)
 2. View running processes in the "Running Processes" panel
 3. View security boundaries in the "Security Boundaries" panel
 
@@ -133,7 +133,7 @@ Open VS Code settings (Ctrl+, / Cmd+,) and set:
 **Option A: Use Command Palette**
 
 1. Press `Ctrl+Shift+P` (Cmd+Shift+P on Mac)
-2. Type "MCP Process: Start Process"
+2. Type "MCP ACS Process: Start Process"
 3. Enter executable name (e.g., "node")
 4. Enter arguments (e.g., "--version")
 
@@ -147,7 +147,7 @@ Open VS Code settings (Ctrl+, / Cmd+,) and set:
 ### Example 1: Run a Node.js Script
 
 1. Open Command Palette (Ctrl+Shift+P)
-2. Select "MCP Process: Start Process"
+2. Select "MCP ACS Process: Start Process"
 3. Enter executable: `node`
 4. Enter arguments: `script.js arg1 arg2`
 5. View the process in the tree view
@@ -177,13 +177,13 @@ Open VS Code settings (Ctrl+, / Cmd+,) and set:
 ### Example 5: Configure Allowlist
 
 1. Open Command Palette (Ctrl+Shift+P)
-2. Select "MCP Process: Configure Executable Allowlist"
+2. Select "MCP ACS Process: Configure Executable Allowlist"
 3. Edit the configuration file
 4. Save and restart the server
 
 ## Configuration
 
-The MCP Process Manager provides comprehensive configuration through VS Code's native settings UI. All 50+ settings are organized into 8 logical categories for easy discovery and management.
+The MCP ACS Process Manager provides comprehensive configuration through VS Code's native settings UI. All 50+ settings are organized into 8 logical categories for easy discovery and management.
 
 ### Quick Configuration
 
@@ -477,7 +477,7 @@ Permissive settings for local development with minimal restrictions.
 
 **Use when:** Developing locally, need flexibility, trust all code
 
-**Apply:** Command Palette → "MCP Process: Apply Configuration Preset" → "Development"
+**Apply:** Command Palette → "MCP ACS Process: Apply Configuration Preset" → "Development"
 
 #### Production Preset
 
@@ -485,7 +485,7 @@ Balanced settings for production use with reasonable security.
 
 **Use when:** Running in production, need security without breaking functionality
 
-**Apply:** Command Palette → "MCP Process: Apply Configuration Preset" → "Production"
+**Apply:** Command Palette → "MCP ACS Process: Apply Configuration Preset" → "Production"
 
 #### High Security Preset
 
@@ -493,21 +493,21 @@ Strict settings for maximum security with strong isolation.
 
 **Use when:** Handling untrusted code, maximum security required
 
-**Apply:** Command Palette → "MCP Process: Apply Configuration Preset" → "High Security"
+**Apply:** Command Palette → "MCP ACS Process: Apply Configuration Preset" → "High Security"
 
 ### Import/Export Configuration
 
 **Export Configuration:**
 
 1. Open Command Palette (Ctrl+Shift+P / Cmd+Shift+P)
-2. Run "MCP Process: Export Configuration"
+2. Run "MCP ACS Process: Export Configuration"
 3. Choose save location
 4. Configuration saved as JSON with metadata
 
 **Import Configuration:**
 
 1. Open Command Palette
-2. Run "MCP Process: Import Configuration"
+2. Run "MCP ACS Process: Import Configuration"
 3. Select configuration JSON file
 4. Review changes and confirm
 5. Settings applied to VS Code
@@ -519,7 +519,7 @@ Strict settings for maximum security with strong isolation.
 To check your configuration for errors and conflicts:
 
 1. Open Command Palette
-2. Run "MCP Process: Validate Configuration"
+2. Run "MCP ACS Process: Validate Configuration"
 3. Review validation results in Output panel
 4. Fix any errors or warnings
 5. Re-validate until clean
@@ -541,7 +541,7 @@ To use an external config file, set:
 }
 ```
 
-See the [MCP Process Server documentation](https://github.com/digital-defiance/ai-capabilities-suite/tree/main/packages/mcp-process) for config file format.
+See the [MCP ACS Process Server documentation](https://github.com/digital-defiance/ai-capabilities-suite/tree/main/packages/mcp-process) for config file format.
 
 **Minimal Configuration:**
 
@@ -589,13 +589,13 @@ See the [MCP Process Server documentation](https://github.com/digital-defiance/a
 
 | Command                                       | Description            | Shortcut |
 | --------------------------------------------- | ---------------------- | -------- |
-| `MCP Process: Start Process`                  | Launch a new process   | -        |
-| `MCP Process: Terminate Process`              | Stop a running process | -        |
-| `MCP Process: View All Processes`             | Show process list      | -        |
-| `MCP Process: View Process Statistics`        | Show detailed stats    | -        |
-| `MCP Process: Refresh Process List`           | Refresh the tree view  | -        |
-| `MCP Process: Show Security Boundaries`       | View security config   | -        |
-| `MCP Process: Configure Executable Allowlist` | Edit allowlist         | -        |
+| `MCP ACS Process: Start Process`                  | Launch a new process   | -        |
+| `MCP ACS Process: Terminate Process`              | Stop a running process | -        |
+| `MCP ACS Process: View All Processes`             | Show process list      | -        |
+| `MCP ACS Process: View Process Statistics`        | Show detailed stats    | -        |
+| `MCP ACS Process: Refresh Process List`           | Refresh the tree view  | -        |
+| `MCP ACS Process: Show Security Boundaries`       | View security config   | -        |
+| `MCP ACS Process: Configure Executable Allowlist` | Edit allowlist         | -        |
 
 ## Security
 
@@ -662,7 +662,7 @@ This extension enforces strict security boundaries:
 **Alternative:**
 
 1. Open Command Palette
-2. Run "MCP Process: Configure Executable Allowlist"
+2. Run "MCP ACS Process: Configure Executable Allowlist"
 3. Add the executable to `allowedExecutables`
 4. Save and restart server
 
@@ -696,9 +696,9 @@ This extension enforces strict security boundaries:
 **Solution**:
 
 1. Check if the setting requires server restart (look for "Note: Changes require server restart" in description)
-2. If restart required, click the notification button or run "MCP Process: Restart Server"
+2. If restart required, click the notification button or run "MCP ACS Process: Restart Server"
 3. Check Output panel for configuration errors
-4. Run "MCP Process: Validate Configuration" to check for issues
+4. Run "MCP ACS Process: Validate Configuration" to check for issues
 
 ### Configuration Validation Errors
 
@@ -760,7 +760,7 @@ This extension enforces strict security boundaries:
 2. Try searching for specific category: "mcp-process.executable", "mcp-process.security", etc.
 3. Check if settings are hidden due to platform (some Linux-only settings won't show on Windows/Mac)
 4. Restart VS Code if settings were just installed
-5. Check that extension is activated (look for MCP Process Manager in Activity Bar)
+5. Check that extension is activated (look for MCP ACS Process Manager in Activity Bar)
 
 ## Language Server Protocol (LSP) Features
 
@@ -939,7 +939,7 @@ Contextual help appears when hovering over process-related keywords:
 const child = spawn("node", ["script.js"]);
 //            ^^^^^ Hover shows:
 //            Process Management: spawn
-//            MCP Process Manager provides secure process management.
+//            MCP ACS Process Manager provides secure process management.
 ```
 
 ### 8. Diagnostics
@@ -987,7 +987,7 @@ Quick fixes and refactoring suggestions:
 // Quick Fix: "Replace exec with spawn"
 const result = exec("ls -la"); // ← Click lightbulb for fix
 
-// Refactoring: "Convert to MCP Process Manager"
+// Refactoring: "Convert to MCP ACS Process Manager"
 const child = spawn("node", ["script.js"]); // ← Select and refactor
 ```
 
@@ -1022,7 +1022,7 @@ See [COPILOT-INTEGRATION.md](COPILOT-INTEGRATION.md) for detailed AI integration
 
 ## GitHub Copilot Integration
 
-The MCP Process Manager works seamlessly with GitHub Copilot and other AI assistants through comprehensive LSP integration:
+The MCP ACS Process Manager works seamlessly with GitHub Copilot and other AI assistants through comprehensive LSP integration:
 
 ### How LSP Features Enhance AI Assistance
 
@@ -1082,8 +1082,8 @@ You: "Rename this process variable to 'worker'"
 AI: [Uses rename support to change all occurrences]
     ✓ Renamed 'child' to 'worker' in 8 locations
 
-You: "Convert this to use MCP Process Manager"
-AI: [Uses code action: "Convert to MCP Process Manager"]
+You: "Convert this to use MCP ACS Process Manager"
+AI: [Uses code action: "Convert to MCP ACS Process Manager"]
     [Wraps spawn() with mcpClient.startProcess()]
 ```
 
@@ -1126,7 +1126,7 @@ AI assistants can manage processes autonomously:
 
 - **VS Code**: Version 1.85.0 or higher
 - **Node.js**: Version 18.x or higher
-- **MCP Process Server**: Installed globally or specified in settings
+- **MCP ACS Process Server**: Installed globally or specified in settings
 - **Operating System**: Windows, macOS, or Linux
 
 ## Known Issues
@@ -1159,7 +1159,7 @@ MIT License - see [LICENSE](LICENSE) file for details.
 
 ## More Information
 
-- [MCP Process Server](https://github.com/digital-defiance/ai-capabilities-suite/tree/main/packages/mcp-process)
+- [MCP ACS Process Server](https://github.com/digital-defiance/ai-capabilities-suite/tree/main/packages/mcp-process)
 - [AI Capabilities Suite](https://github.com/digital-defiance/ai-capabilities-suite)
 - [Model Context Protocol](https://modelcontextprotocol.io)
 - [VS Code Extension API](https://code.visualstudio.com/api)

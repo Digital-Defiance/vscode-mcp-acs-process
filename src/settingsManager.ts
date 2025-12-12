@@ -1,7 +1,7 @@
 /**
- * Settings Manager for MCP Process Manager VS Code Extension
+ * Settings Manager for MCP ACS Process Manager VS Code Extension
  *
- * This module manages the synchronization between VS Code settings and the MCP Process Server configuration.
+ * This module manages the synchronization between VS Code settings and the MCP ACS Process Server configuration.
  * It reads settings from VS Code's configuration system and generates the SecurityConfig object
  * that the server expects.
  */
@@ -26,7 +26,7 @@ export interface ResourceLimits {
 }
 
 /**
- * Security configuration for MCP Process Server
+ * Security configuration for MCP ACS Process Server
  */
 export interface SecurityConfig {
   // === EXECUTABLE CONTROL ===
@@ -541,7 +541,7 @@ export const CONFIGURATION_PRESETS: ConfigurationPreset[] = [
 /**
  * Settings Manager class
  *
- * Manages the synchronization between VS Code settings and MCP Process Server configuration.
+ * Manages the synchronization between VS Code settings and MCP ACS Process Server configuration.
  */
 export class SettingsManager {
   private disposables: vscode.Disposable[] = [];
@@ -581,7 +581,7 @@ export class SettingsManager {
    * Handle configuration change events
    */
   private handleConfigurationChange(e: vscode.ConfigurationChangeEvent): void {
-    // Only notify if MCP Process settings changed
+    // Only notify if MCP ACS Process settings changed
     if (e.affectsConfiguration("mcp-process")) {
       const changeWrapper: ConfigurationChange = {
         affectsConfiguration: (section: string) =>
@@ -605,7 +605,7 @@ export class SettingsManager {
    * Generate server configuration from VS Code settings
    *
    * This method reads all settings from VS Code and converts them to the SecurityConfig
-   * format expected by the MCP Process Server.
+   * format expected by the MCP ACS Process Server.
    */
   public generateServerConfig(): SecurityConfig {
     const config = this.getConfiguration();
@@ -1640,7 +1640,7 @@ export class SettingsManager {
       // Metadata
       version: "1.0.0",
       timestamp: platformMetadata.timestamp,
-      exportedBy: "MCP Process Manager VS Code Extension",
+      exportedBy: "MCP ACS Process Manager VS Code Extension",
 
       // Platform metadata
       platform: platformMetadata.platform,

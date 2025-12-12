@@ -1,5 +1,5 @@
 /**
- * Error Handling Module for MCP Process Manager VS Code Extension
+ * Error Handling Module for MCP ACS Process Manager VS Code Extension
  *
  * This module provides comprehensive error handling for:
  * - Validation errors (invalid settings)
@@ -563,7 +563,7 @@ export class FileOperationErrorHandler {
 /**
  * Server Communication Error Handler
  *
- * Handles errors related to MCP Process Server communication.
+ * Handles errors related to MCP ACS Process Server communication.
  */
 export class ServerCommunicationErrorHandler {
   private outputChannel: vscode.LogOutputChannel;
@@ -619,7 +619,7 @@ export class ServerCommunicationErrorHandler {
    * Shows a notification with a button to start the server.
    */
   public async handleServerNotRunning(error: Error): Promise<void> {
-    this.outputChannel.appendLine("MCP Process server is not running");
+    this.outputChannel.appendLine("MCP ACS Process server is not running");
     this.outputChannel.appendLine(`Error: ${error.message}`);
 
     // In test mode, just throw the error instead of showing UI
@@ -632,7 +632,7 @@ export class ServerCommunicationErrorHandler {
     }
 
     const message =
-      "MCP Process server is not running.\n\n" +
+      "MCP ACS Process server is not running.\n\n" +
       "The server needs to be started before you can manage processes.";
 
     const selection = await vscode.window.showErrorMessage(
@@ -660,7 +660,9 @@ export class ServerCommunicationErrorHandler {
    * Suggests checking logs and restarting the server.
    */
   public async handleConnectionTimeout(error: Error): Promise<void> {
-    this.outputChannel.appendLine("Connection to MCP Process server timed out");
+    this.outputChannel.appendLine(
+      "Connection to MCP ACS Process server timed out"
+    );
     this.outputChannel.appendLine(`Error: ${error.message}`);
 
     // In test mode, just throw the error instead of showing UI
@@ -673,7 +675,7 @@ export class ServerCommunicationErrorHandler {
     }
 
     const message =
-      "Connection to MCP Process server timed out.\n\n" +
+      "Connection to MCP ACS Process server timed out.\n\n" +
       "The server may be unresponsive or overloaded.\n\n" +
       "Possible solutions:\n" +
       "• Check the server logs for errors\n" +
@@ -702,12 +704,12 @@ export class ServerCommunicationErrorHandler {
    */
   public async handleInvalidResponse(error: Error): Promise<void> {
     this.outputChannel.appendLine(
-      "Received invalid response from MCP Process server"
+      "Received invalid response from MCP ACS Process server"
     );
     this.outputChannel.appendLine(`Error: ${error.message}`);
 
     const message =
-      "Received invalid response from MCP Process server.\n\n" +
+      "Received invalid response from MCP ACS Process server.\n\n" +
       "The server may be in an inconsistent state.\n\n" +
       "Recommended action: Restart the server";
 
@@ -747,7 +749,7 @@ export class ServerCommunicationErrorHandler {
     }
 
     let message =
-      "Version mismatch detected between the extension and MCP Process server.\n\n";
+      "Version mismatch detected between the extension and MCP ACS Process server.\n\n";
 
     if (extensionVersion && serverVersion) {
       message += `Extension version: ${extensionVersion}\n`;
@@ -811,7 +813,7 @@ export class ServerCommunicationErrorHandler {
 
         await vscode.window
           .showErrorMessage(
-            `Failed to communicate with MCP Process server:\n\n${error.message}\n\n` +
+            `Failed to communicate with MCP ACS Process server:\n\n${error.message}\n\n` +
               `Try restarting the server or check the logs for more details.`,
             { modal: false },
             "Restart Server",

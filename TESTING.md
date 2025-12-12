@@ -1,6 +1,6 @@
 # Testing Guide
 
-This document describes the testing strategy and how to run tests for the MCP Process Manager VS Code extension.
+This document describes the testing strategy and how to run tests for the MCP ACS Process Manager VS Code extension.
 
 ## Test Structure
 
@@ -104,6 +104,7 @@ End-to-end tests:
    ```
 
 2. Compile TypeScript:
+
    ```bash
    npm run compile
    ```

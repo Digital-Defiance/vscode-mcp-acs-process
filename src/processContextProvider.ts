@@ -48,11 +48,11 @@ export class ProcessContextProvider {
     const context = await this.getContext();
 
     if (!context.serverRunning) {
-      return "MCP Process Manager: Server not running";
+      return "MCP ACS Process Manager: Server not running";
     }
 
     const lines: string[] = [
-      "=== MCP Process Manager Context ===",
+      "=== MCP ACS Process Manager Context ===",
       "",
       `Running Processes: ${context.processes.length}`,
     ];

@@ -2,7 +2,7 @@
   "name": "mcp-acs-process",
   "displayName": "MCP ACS Process Manager",
   "description": "Process management for AI agents with MCP integration and security boundaries. Part of the Digital Defiance AI Capabilities Suite.",
-  "version": "1.5.7",
+  "version": "1.5.9",
   "packageManager": "yarn@4.12.0",
   "publisher": "DigitalDefiance",
   "icon": "images/icon.png",
@@ -33,17 +33,11 @@
   ],
   "main": "./out/extension.js",
   "contributes": {
-    "mcpServerDefinitionProviders": [
-      {
-        "id": "mcp-acs-process.mcp-provider",
-        "label": "MCP Process Manager"
-      }
-    ],
     "chatParticipants": [
       {
         "id": "mcp-acs-process.participant",
         "name": "process",
-        "description": "MCP Process Manager - Enterprise-grade process management with security boundaries",
+        "description": "MCP ACS Process Manager - Enterprise-grade process management with security boundaries",
         "isSticky": true
       }
     ],
@@ -383,68 +377,63 @@
     ],
     "commands": [
       {
-        "command": "mcp-process.configureMcp",
-        "title": "MCP Process: Add to Copilot MCP Servers",
-        "icon": "$(add)"
-      },
-      {
         "command": "mcp-process.startProcess",
-        "title": "MCP Process: Start Process",
+        "title": "MCP ACS Process: Start Process",
         "icon": "$(play)"
       },
       {
         "command": "mcp-process.terminateProcess",
-        "title": "MCP Process: Terminate Process",
+        "title": "MCP ACS Process: Terminate Process",
         "icon": "$(stop)"
       },
       {
         "command": "mcp-process.viewProcesses",
-        "title": "MCP Process: View All Processes",
+        "title": "MCP ACS Process: View All Processes",
         "icon": "$(list-tree)"
       },
       {
         "command": "mcp-process.viewStats",
-        "title": "MCP Process: View Process Statistics",
+        "title": "MCP ACS Process: View Process Statistics",
         "icon": "$(graph)"
       },
       {
         "command": "mcp-process.refreshProcessList",
-        "title": "MCP Process: Refresh Process List",
+        "title": "MCP ACS Process: Refresh Process List",
         "icon": "$(refresh)"
       },
       {
         "command": "mcp-process.showSecurityBoundaries",
-        "title": "MCP Process: Show Security Boundaries",
+        "title": "MCP ACS Process: Show Security Boundaries",
         "icon": "$(shield)"
       },
       {
         "command": "mcp-process.configureAllowlist",
-        "title": "MCP Process: Configure Executable Allowlist",
+        "title": "MCP ACS Process: Configure Executable Allowlist",
         "icon": "$(settings-gear)"
       },
       {
         "command": "mcp-process.restartServer",
-        "title": "MCP Process: Restart Server",
+        "title": "MCP ACS Process: Restart Server",
         "icon": "$(debug-restart)"
       },
       {
         "command": "mcp-process.applyConfigurationPreset",
-        "title": "MCP Process: Apply Configuration Preset",
+        "title": "MCP ACS Process: Apply Configuration Preset",
         "icon": "$(settings)"
       },
       {
         "command": "mcp-process.exportConfiguration",
-        "title": "MCP Process: Export Configuration",
+        "title": "MCP ACS Process: Export Configuration",
         "icon": "$(export)"
       },
       {
         "command": "mcp-process.importConfiguration",
-        "title": "MCP Process: Import Configuration",
+        "title": "MCP ACS Process: Import Configuration",
         "icon": "$(import)"
       },
       {
         "command": "mcp-process.validateConfiguration",
-        "title": "MCP Process: Validate Configuration",
+        "title": "MCP ACS Process: Validate Configuration",
         "icon": "$(check)"
       }
     ],
@@ -452,7 +441,7 @@
       "activitybar": [
         {
           "id": "mcp-process-explorer",
-          "title": "MCP Process Manager",
+          "title": "MCP ACS Process Manager",
           "icon": "$(server-process)"
         }
       ]
@@ -463,7 +452,7 @@
           "id": "mcp-process-list",
           "name": "Running Processes",
           "icon": "$(list-tree)",
-          "contextualTitle": "MCP Processes"
+          "contextualTitle": "MCP ACS Processes"
         },
         {
           "id": "mcp-process-security",
@@ -476,13 +465,13 @@
     "walkthroughs": [
       {
         "id": "mcp-acs-process.walkthrough",
-        "title": "Get Started with MCP Process Manager",
+        "title": "Get Started with MCP ACS Process Manager",
         "description": "Learn how to manage processes with AI assistance",
         "steps": [
           {
             "id": "install",
             "title": "Extension Installed",
-            "description": "MCP Process Manager is now active.\n[Open Settings](command:workbench.action.openSettings?%5B%22mcp-process%22%5D)",
+            "description": "MCP ACS Process Manager is now active.\n[Open Settings](command:workbench.action.openSettings?%5B%22mcp-process%22%5D)",
             "media": {
               "markdown": "README.md"
             }
@@ -577,7 +566,7 @@
       ]
     },
     "configuration": {
-      "title": "MCP Process Manager",
+      "title": "MCP ACS Process Manager",
       "properties": {
         "mcp-process.server.serverPath": {
           "type": "string",
@@ -1057,7 +1046,7 @@
     "typescript": "^5.3.3"
   },
   "dependencies": {
-    "@ai-capabilities-suite/mcp-process": "^1.5.7",
+    "@ai-capabilities-suite/mcp-process": "^1.5.9",
     "@ai-capabilities-suite/vscode-shared-status-bar": "^1.0.21",
     "@modelcontextprotocol/sdk": "^0.5.0",
     "vscode-languageclient": "^10.0.0-next.15",

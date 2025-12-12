@@ -2409,7 +2409,7 @@ suite("Settings Manager Platform Filtering Property Tests", () => {
             const mockExport = {
               version: "1.0.0",
               timestamp: new Date().toISOString(),
-              exportedBy: "MCP Process Manager VS Code Extension",
+              exportedBy: "MCP ACS Process Manager VS Code Extension",
               platform: sourcePlatform,
               platformName: sourcePlatform,
               architecture: "x64",
@@ -2813,7 +2813,7 @@ suite("Settings Manager Validation Consistency Property Tests", () => {
  * Feature: vscode-process-settings-ui, Property 8: Default value consistency
  *
  * For any setting, the default value in package.json should match the default value
- * in the MCP Process Server.
+ * in the MCP ACS Process Server.
  *
  * Validates: Requirements 1.1
  */

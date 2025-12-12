@@ -1,6 +1,6 @@
 # Development Guide
 
-This guide explains how to develop and contribute to the MCP Process Manager extension.
+This guide explains how to develop and contribute to the MCP ACS Process Manager extension.
 
 ## Project Structure
 
@@ -58,7 +58,7 @@ npm install
 yarn install
 ```
 
-### 3. Install MCP Process Server
+### 3. Install MCP ACS Process Server
 
 ```bash
 npm install -g @ai-capabilities-suite/mcp-process
@@ -206,7 +206,7 @@ Key classes:
     "commands": [
       {
         "command": "mcp-process.myCommand",
-        "title": "MCP Process: My Command"
+        "title": "MCP ACS Process: My Command"
       }
     ]
   }
@@ -357,7 +357,7 @@ Set log level to debug:
 Check Output panel:
 
 1. View → Output
-2. Select "MCP Process Manager" from dropdown
+2. Select "MCP ACS Process Manager" from dropdown
 
 ### Inspect MCP Messages
 
@@ -482,10 +482,10 @@ See [PUBLISHING.md](PUBLISHING.md) for details.
 - [VS Code Extension Samples](https://github.com/microsoft/vscode-extension-samples)
 - [TypeScript Handbook](https://www.typescriptlang.org/docs/)
 - [MCP Protocol](https://modelcontextprotocol.io)
-- [MCP Process Server](https://github.com/digital-defiance/ai-capabilities-suite/tree/main/packages/mcp-process)
+- [MCP ACS Process Server](https://github.com/digital-defiance/ai-capabilities-suite/tree/main/packages/mcp-process)
 
 ## Support
 
-- GitHub Issues: https://github.com/digital-defiance/ai-capabilities-suite/issues
-- Email: info@digitaldefiance.org
+- GitHub Issues: <https://github.com/digital-defiance/ai-capabilities-suite/issues>
+- Email: <info@digitaldefiance.org>
 - Discord: [Join our server](https://discord.gg/digitaldefiance)

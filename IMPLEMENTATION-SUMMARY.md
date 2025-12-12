@@ -2,7 +2,7 @@
 
 ## Overview
 
-Successfully implemented a comprehensive VS Code extension for the MCP Process Manager that provides process management capabilities with security boundaries for AI agents.
+Successfully implemented a comprehensive VS Code extension for the MCP ACS Process Manager that provides process management capabilities with security boundaries for AI agents.
 
 ## What Was Created
 
@@ -170,7 +170,7 @@ Successfully implemented a comprehensive VS Code extension for the MCP Process M
                     │ stdio (JSON-RPC)
                     │
          ┌──────────▼──────────┐
-         │  MCP Process Server │
+         │  MCP ACS Process Server │
          │  (Node.js)          │
          └─────────────────────┘
 ```
@@ -333,7 +333,7 @@ To complete the extension:
 
 ## Conclusion
 
-The VS Code extension for MCP Process Manager has been successfully implemented with all required features:
+The VS Code extension for MCP ACS Process Manager has been successfully implemented with all required features:
 
 1. ✅ Complete project structure
 2. ✅ Process management panel with tree view

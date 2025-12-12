@@ -4,7 +4,7 @@ This guide helps you migrate from the external configuration file (`mcp-process-
 
 ## Overview
 
-The MCP Process Manager extension supports two configuration methods:
+The MCP ACS Process Manager extension supports two configuration methods:
 
 1. **VS Code Settings** (Recommended) - Configure everything through VS Code's native settings UI
 2. **External Config File** (Advanced) - Use a JSON configuration file for standalone server or programmatic control
@@ -24,7 +24,7 @@ The MCP Process Manager extension supports two configuration methods:
 
 **When to Use External Config File:**
 
-- Running the MCP Process Server standalone (without VS Code)
+- Running the MCP ACS Process Server standalone (without VS Code)
 - Programmatic configuration management
 - Advanced users who prefer file-based configuration
 - CI/CD pipelines that need to inject configuration
@@ -274,11 +274,11 @@ After migrating your settings, disable config file mode:
 1. Open VS Code Settings
 2. Search for "mcp-process.server.useConfigFile"
 3. Set to `false` (or remove the setting, as `false` is the default)
-4. Restart the server: Command Palette → "MCP Process: Restart Server"
+4. Restart the server: Command Palette → "MCP ACS Process: Restart Server"
 
 ## Step 5: Verify Configuration
 
-1. Run "MCP Process: Validate Configuration" from Command Palette
+1. Run "MCP ACS Process: Validate Configuration" from Command Palette
 2. Check for any errors or warnings
 3. Fix any issues reported
 4. Test process launching to ensure everything works
@@ -299,7 +299,7 @@ You can use both VS Code settings and a config file simultaneously:
 For complex configurations, you can use the import feature:
 
 1. Keep your existing config file
-2. Run "MCP Process: Import Configuration" from Command Palette
+2. Run "MCP ACS Process: Import Configuration" from Command Palette
 3. Select your `mcp-process-config.json` file
 4. Review the changes
 5. Confirm to apply settings to VS Code
@@ -307,7 +307,7 @@ For complex configurations, you can use the import feature:
 
 ## When to Use Config File vs VS Code Settings
 
-### Use VS Code Settings When:
+### Use VS Code Settings When
 
 - ✅ Using the extension in VS Code (primary use case)
 - ✅ Want visual configuration UI
@@ -315,7 +315,7 @@ For complex configurations, you can use the import feature:
 - ✅ Want to sync settings across devices
 - ✅ Prefer integrated documentation
 
-### Use Config File When:
+### Use Config File When
 
 - ✅ Running server standalone (without VS Code)
 - ✅ Programmatic configuration management
@@ -332,7 +332,7 @@ For complex configurations, you can use the import feature:
 **Solution:**
 
 1. Verify `mcp-process.server.useConfigFile` is `false`
-2. Restart server: "MCP Process: Restart Server"
+2. Restart server: "MCP ACS Process: Restart Server"
 3. Check Output panel for configuration errors
 
 ### Missing Settings
@@ -348,7 +348,7 @@ All config file settings have corresponding VS Code settings. Use the mapping ta
 
 **Solution:**
 
-1. Run "MCP Process: Validate Configuration"
+1. Run "MCP ACS Process: Validate Configuration"
 2. Read error messages carefully
 3. Common issues:
    - Dependency violations (e.g., `enableChroot` requires `chrootDirectory`)
@@ -382,6 +382,6 @@ All config file settings have corresponding VS Code settings. Use the mapping ta
 If you encounter issues during migration:
 
 1. Check the [README](README.md) for detailed setting descriptions
-2. Run "MCP Process: Validate Configuration" for specific errors
+2. Run "MCP ACS Process: Validate Configuration" for specific errors
 3. Check the Output panel for detailed error messages
 4. Open an issue on [GitHub](https://github.com/digital-defiance/ai-capabilities-suite/issues)

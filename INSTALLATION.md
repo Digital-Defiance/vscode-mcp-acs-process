@@ -1,6 +1,6 @@
 # Installation Guide
 
-This guide will help you install and configure the MCP Process Manager extension for VS Code.
+This guide will help you install and configure the MCP ACS Process Manager extension for VS Code.
 
 ## Prerequisites
 
@@ -8,7 +8,7 @@ Before installing the extension, ensure you have:
 
 1. **VS Code**: Version 1.85.0 or higher
 2. **Node.js**: Version 18.x or higher
-3. **npm or yarn**: For installing the MCP Process Server
+3. **npm or yarn**: For installing the MCP ACS Process Server
 
 ## Step 1: Install the Extension
 
@@ -16,7 +16,7 @@ Before installing the extension, ensure you have:
 
 1. Open VS Code
 2. Click the Extensions icon in the Activity Bar (or press `Ctrl+Shift+X` / `Cmd+Shift+X`)
-3. Search for "MCP Process Manager"
+3. Search for "MCP ACS Process Manager"
 4. Click the "Install" button
 5. Wait for installation to complete
 6. Reload VS Code if prompted
@@ -36,9 +36,9 @@ Or in VS Code:
 3. Select the `.vsix` file
 4. Wait for installation to complete
 
-## Step 2: Install the MCP Process Server
+## Step 2: Install the MCP ACS Process Server
 
-The extension requires the MCP Process Server to function.
+The extension requires the MCP ACS Process Server to function.
 
 ### Option A: Global Installation (Recommended)
 
@@ -72,7 +72,7 @@ See [Docker documentation](https://github.com/digital-defiance/ai-capabilities-s
 
 ## Step 3: Create Configuration File
 
-Create a configuration file for the MCP Process Server:
+Create a configuration file for the MCP ACS Process Server:
 
 ```bash
 # Create config directory
@@ -139,9 +139,9 @@ Or use the Settings UI:
 ## Step 5: Verify Installation
 
 1. Restart VS Code
-2. Look for the MCP Process Manager icon in the Activity Bar (left sidebar)
+2. Look for the MCP ACS Process Manager icon in the Activity Bar (left sidebar)
 3. Click the icon to open the extension
-4. Check the Output panel (View → Output → MCP Process Manager) for any errors
+4. Check the Output panel (View → Output → MCP ACS Process Manager) for any errors
 5. You should see two panels:
    - "Running Processes" (initially empty)
    - "Security Boundaries" (showing your configuration)
@@ -159,7 +159,7 @@ Or use the Settings UI:
 ### Test 2: Start a Process
 
 1. Open Command Palette (`Ctrl+Shift+P` / `Cmd+Shift+P`)
-2. Type "MCP Process: Start Process"
+2. Type "MCP ACS Process: Start Process"
 3. Enter executable: `node`
 4. Enter arguments: `--version`
 5. Check the "Running Processes" panel
@@ -175,7 +175,7 @@ Or use the Settings UI:
 
 ### Extension Not Appearing
 
-**Problem**: MCP Process Manager icon not in Activity Bar
+**Problem**: MCP ACS Process Manager icon not in Activity Bar
 
 **Solution**:
 
@@ -191,7 +191,7 @@ Or use the Settings UI:
 
 1. Check if Node.js is installed: `node --version`
 2. Check if MCP server is installed: `mcp-process --version`
-3. Check Output panel for errors: View → Output → MCP Process Manager
+3. Check Output panel for errors: View → Output → MCP ACS Process Manager
 4. Verify configuration file exists and is valid JSON
 5. Try manual start: `mcp-process --config ~/.mcp-process/config.json`
 
@@ -264,14 +264,14 @@ If using a custom server installation:
 
 1. Read the [README](README.md) for usage examples
 2. Check the [Security Documentation](https://github.com/digital-defiance/ai-capabilities-suite/tree/main/packages/mcp-process/SECURITY.md)
-3. Explore the [MCP Process Server Documentation](https://github.com/digital-defiance/ai-capabilities-suite/tree/main/packages/mcp-process)
+3. Explore the [MCP ACS Process Server Documentation](https://github.com/digital-defiance/ai-capabilities-suite/tree/main/packages/mcp-process)
 4. Try the [GitHub Copilot Integration](README.md#github-copilot-integration)
 
 ## Getting Help
 
 If you encounter issues:
 
-1. Check the Output panel: View → Output → MCP Process Manager
+1. Check the Output panel: View → Output → MCP ACS Process Manager
 2. Check the [Troubleshooting](README.md#troubleshooting) section
 3. Open an issue on [GitHub](https://github.com/digital-defiance/ai-capabilities-suite/issues)
 4. Include:
@@ -287,7 +287,7 @@ If you encounter issues:
 To uninstall the extension:
 
 1. Open Extensions view (`Ctrl+Shift+X` / `Cmd+Shift+X`)
-2. Find "MCP Process Manager"
+2. Find "MCP ACS Process Manager"
 3. Click the gear icon
 4. Select "Uninstall"
 5. Reload VS Code

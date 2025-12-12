@@ -176,7 +176,7 @@ function showRestartNotification(): void {
       vscode.StatusBarAlignment.Left,
       100
     );
-    statusBarItem.text = "$(warning) MCP Process: Restart Required";
+    statusBarItem.text = "$(warning) MCP ACS Process: Restart Required";
     statusBarItem.tooltip =
       "Configuration changes require server restart. Click to restart.";
     statusBarItem.command = "mcp-process.restartServer";
@@ -186,7 +186,7 @@ function showRestartNotification(): void {
   // Show notification
   vscode.window
     .showWarningMessage(
-      "MCP Process configuration changed. Server restart required for changes to take effect.",
+      "MCP ACS Process configuration changed. Server restart required for changes to take effect.",
       "Restart Now",
       "Restart Later"
     )
@@ -198,7 +198,7 @@ function showRestartNotification(): void {
 }
 
 /**
- * Restart the MCP Process server
+ * Restart the MCP ACS Process server
  */
 async function restartServer(): Promise<void> {
   if (!settingsManager) {
@@ -207,7 +207,7 @@ async function restartServer(): Promise<void> {
   }
 
   try {
-    outputChannel.appendLine("Restarting MCP Process server...");
+    outputChannel.appendLine("Restarting MCP ACS Process server...");
 
     // Stop existing server
     if (mcpClient) {
@@ -240,9 +240,9 @@ async function restartServer(): Promise<void> {
       statusBarItem.hide();
     }
 
-    outputChannel.appendLine("MCP Process server restarted successfully");
+    outputChannel.appendLine("MCP ACS Process server restarted successfully");
     vscode.window.showInformationMessage(
-      "MCP Process server restarted successfully"
+      "MCP ACS Process server restarted successfully"
     );
 
     // Refresh process list
@@ -255,7 +255,7 @@ async function restartServer(): Promise<void> {
       await errorHandler.server.handleServerError(error);
     } else {
       vscode.window.showErrorMessage(
-        `Failed to restart MCP Process server: ${error.message || error}`
+        `Failed to restart MCP ACS Process server: ${error.message || error}`
       );
     }
   }
@@ -344,7 +344,7 @@ async function exportConfiguration(): Promise<void> {
         "All Files": ["*"],
       },
       saveLabel: "Export Configuration",
-      title: "Export MCP Process Configuration",
+      title: "Export MCP ACS Process Configuration",
     });
 
     if (!uri) {
@@ -400,7 +400,7 @@ async function importConfiguration(): Promise<void> {
         "All Files": ["*"],
       },
       openLabel: "Import Configuration",
-      title: "Import MCP Process Configuration",
+      title: "Import MCP ACS Process Configuration",
     });
 
     if (!uris || uris.length === 0) {
@@ -469,7 +469,7 @@ async function checkFirstRunExperience(
 
   // Show welcome notification with preset options
   const selection = await vscode.window.showInformationMessage(
-    "Welcome to MCP Process Manager! 🚀\n\n" +
+    "Welcome to MCP ACS Process Manager! 🚀\n\n" +
       "To get started, you can apply a configuration preset optimized for your use case, " +
       "or configure settings manually.\n\n" +
       "Presets provide pre-configured security and resource settings:\n" +
@@ -560,7 +560,7 @@ async function checkFirstRunExperience(
 }
 
 /**
- * Check if the user has customized any MCP Process settings
+ * Check if the user has customized any MCP ACS Process settings
  */
 function isConfigurationCustomized(
   config: vscode.WorkspaceConfiguration
@@ -653,7 +653,7 @@ async function validateConfiguration(): Promise<void> {
     outputChannel.show(true);
 
     outputChannel.appendLine("=".repeat(80));
-    outputChannel.appendLine("MCP Process Configuration Validation");
+    outputChannel.appendLine("MCP ACS Process Configuration Validation");
     outputChannel.appendLine("=".repeat(80));
     outputChannel.appendLine("");
 
@@ -741,83 +741,11 @@ async function validateConfiguration(): Promise<void> {
 /**
  * Add this MCP server to the workspace mcp.json configuration
  */
-async function configureMcpServer(): Promise<void> {
-  const workspaceFolders = vscode.workspace.workspaceFolders;
-  if (!workspaceFolders || workspaceFolders.length === 0) {
-    const choice = await vscode.window.showWarningMessage(
-      "No workspace folder open. Would you like to add the MCP server to your user settings instead?",
-      "Add to User Settings",
-      "Cancel"
-    );
-    if (choice === "Add to User Settings") {
-      await vscode.commands.executeCommand("workbench.action.openSettingsJson");
-      vscode.window.showInformationMessage(
-        "Add the MCP server configuration manually. See the extension README for details."
-      );
-    }
-    return;
-  }
-
-  const workspaceFolder = workspaceFolders[0];
-  const vscodePath = path.join(workspaceFolder.uri.fsPath, ".vscode");
-  const mcpJsonPath = path.join(vscodePath, "mcp.json");
-
-  // Ensure .vscode directory exists
-  if (!fs.existsSync(vscodePath)) {
-    fs.mkdirSync(vscodePath, { recursive: true });
-  }
-
-  // Read existing mcp.json or create new one
-  let mcpConfig: { servers?: Record<string, any> } = { servers: {} };
-  if (fs.existsSync(mcpJsonPath)) {
-    try {
-      const content = fs.readFileSync(mcpJsonPath, "utf8");
-      mcpConfig = JSON.parse(content);
-      if (!mcpConfig.servers) {
-        mcpConfig.servers = {};
-      }
-    } catch (error) {
-      outputChannel.appendLine(`Error reading mcp.json: ${error}`);
-    }
-  }
-
-  // Add our server configuration
-  const serverName = "mcp-process";
-  if (mcpConfig.servers && mcpConfig.servers[serverName]) {
-    const choice = await vscode.window.showWarningMessage(
-      `MCP server "${serverName}" is already configured. Do you want to replace it?`,
-      "Replace",
-      "Cancel"
-    );
-    if (choice !== "Replace") {
-      return;
-    }
-  }
-
-  mcpConfig.servers = mcpConfig.servers || {};
-  mcpConfig.servers[serverName] = {
-    type: "stdio",
-    command: process.platform === "win32" ? "npx.cmd" : "npx",
-    args: ["-y", "@ai-capabilities-suite/mcp-process"],
-  };
-
-  // Write the updated configuration
-  fs.writeFileSync(mcpJsonPath, JSON.stringify(mcpConfig, null, 2));
-
-  // Open the file to show the user
-  const doc = await vscode.workspace.openTextDocument(mcpJsonPath);
-  await vscode.window.showTextDocument(doc);
-
-  vscode.window.showInformationMessage(
-    `MCP Process Manager server added to ${mcpJsonPath}. Restart the MCP server to use it with Copilot.`
-  );
-}
-
 export async function activate(context: vscode.ExtensionContext) {
-  outputChannel = vscode.window.createOutputChannel("MCP Process Manager", {
+  outputChannel = vscode.window.createOutputChannel("MCP ACS Process Manager", {
     log: true,
   });
-  outputChannel.appendLine("MCP Process Manager extension activating...");
+  outputChannel.appendLine("MCP ACS Process Manager extension activating...");
 
   // Check if we're running in test mode
   const isTestMode =
@@ -834,48 +762,13 @@ export async function activate(context: vscode.ExtensionContext) {
     );
   }
 
-  // Register MCP server definition provider (for future MCP protocol support)
-  try {
-    const mcpProviderId = "mcp-acs-process.mcp-provider";
-    const mcpProvider: vscode.McpServerDefinitionProvider = {
-      provideMcpServerDefinitions: async (token) => {
-        const config = vscode.workspace.getConfiguration("mcp-process");
-        const serverPath = config.get<string>("server.serverPath", "");
-        const command = serverPath || "npx";
-        const args = serverPath
-          ? []
-          : ["-y", "@ai-capabilities-suite/mcp-process"];
-
-        return [
-          new vscode.McpStdioServerDefinition(
-            "MCP Process Manager",
-            command,
-            args
-          ),
-        ];
-      },
-      resolveMcpServerDefinition: async (server, token) => {
-        return server;
-      },
-    };
-
-    context.subscriptions.push(
-      vscode.lm.registerMcpServerDefinitionProvider(mcpProviderId, mcpProvider)
-    );
-    outputChannel.appendLine("MCP server definition provider registered");
-  } catch (error) {
-    outputChannel.appendLine(
-      `MCP provider registration skipped (API not available): ${error}`
-    );
-  }
-
   // Register chat participant for Copilot integration
   const participant = vscode.chat.createChatParticipant(
     "mcp-acs-process.participant",
     async (request, context, stream, token) => {
       if (!mcpClient) {
         stream.markdown(
-          "MCP Process Manager is not running. Please start it first."
+          "MCP ACS Process Manager is not running. Please start it first."
         );
         return;
       }
@@ -1009,7 +902,7 @@ export async function activate(context: vscode.ExtensionContext) {
             token: vscode.CancellationToken
           ) => {
             if (!mcpClient) {
-              throw new Error("MCP Process server not running");
+              throw new Error("MCP ACS Process server not running");
             }
             const output = await mcpClient.getProcessOutput(options.input);
             return new vscode.LanguageModelToolResult([
@@ -1035,7 +928,7 @@ export async function activate(context: vscode.ExtensionContext) {
             token: vscode.CancellationToken
           ) => {
             if (!mcpClient) {
-              throw new Error("MCP Process server not running");
+              throw new Error("MCP ACS Process server not running");
             }
             await mcpClient.sendProcessInput(options.input);
             return new vscode.LanguageModelToolResult([
@@ -1060,7 +953,7 @@ export async function activate(context: vscode.ExtensionContext) {
             token: vscode.CancellationToken
           ) => {
             if (!mcpClient) {
-              throw new Error("MCP Process server not running");
+              throw new Error("MCP ACS Process server not running");
             }
             const status = await mcpClient.getProcessStatus(options.input);
             return new vscode.LanguageModelToolResult([
@@ -1090,7 +983,7 @@ export async function activate(context: vscode.ExtensionContext) {
             token: vscode.CancellationToken
           ) => {
             if (!mcpClient) {
-              throw new Error("MCP Process server not running");
+              throw new Error("MCP ACS Process server not running");
             }
             await mcpClient.createProcessGroup(options.input);
             return new vscode.LanguageModelToolResult([
@@ -1118,7 +1011,7 @@ export async function activate(context: vscode.ExtensionContext) {
             token: vscode.CancellationToken
           ) => {
             if (!mcpClient) {
-              throw new Error("MCP Process server not running");
+              throw new Error("MCP ACS Process server not running");
             }
             await mcpClient.addToProcessGroup(options.input);
             return new vscode.LanguageModelToolResult([
@@ -1144,7 +1037,7 @@ export async function activate(context: vscode.ExtensionContext) {
             token: vscode.CancellationToken
           ) => {
             if (!mcpClient) {
-              throw new Error("MCP Process server not running");
+              throw new Error("MCP ACS Process server not running");
             }
             await mcpClient.terminateProcessGroup(options.input);
             return new vscode.LanguageModelToolResult([
@@ -1176,7 +1069,7 @@ export async function activate(context: vscode.ExtensionContext) {
             token: vscode.CancellationToken
           ) => {
             if (!mcpClient) {
-              throw new Error("MCP Process server not running");
+              throw new Error("MCP ACS Process server not running");
             }
             await mcpClient.startService(options.input);
             return new vscode.LanguageModelToolResult([
@@ -1203,7 +1096,7 @@ export async function activate(context: vscode.ExtensionContext) {
             token: vscode.CancellationToken
           ) => {
             if (!mcpClient) {
-              throw new Error("MCP Process server not running");
+              throw new Error("MCP ACS Process server not running");
             }
             await mcpClient.stopService(options.input);
             return new vscode.LanguageModelToolResult([
@@ -1320,7 +1213,7 @@ export async function activate(context: vscode.ExtensionContext) {
       securityTreeProvider.setMCPClient(mcpClient);
       processContextProvider.setMCPClient(mcpClient);
 
-      outputChannel.appendLine("MCP Process server started successfully");
+      outputChannel.appendLine("MCP ACS Process server started successfully");
 
       // Start auto-refresh
       startAutoRefresh();
@@ -1328,7 +1221,7 @@ export async function activate(context: vscode.ExtensionContext) {
       outputChannel.appendLine(`Failed to start MCP server: ${error}`);
       vscode.window
         .showErrorMessage(
-          "Failed to start MCP Process server. Check output for details.",
+          "Failed to start MCP ACS Process server. Check output for details.",
           "Show Output"
         )
         .then((selection) => {
@@ -1340,12 +1233,6 @@ export async function activate(context: vscode.ExtensionContext) {
   }
 
   // Register commands
-  context.subscriptions.push(
-    vscode.commands.registerCommand("mcp-process.configureMcp", async () => {
-      await configureMcpServer();
-    })
-  );
-
   context.subscriptions.push(
     vscode.commands.registerCommand("mcp-process.startProcess", async () => {
       await startProcess();
@@ -1469,11 +1356,11 @@ export async function activate(context: vscode.ExtensionContext) {
     )
   );
 
-  outputChannel.appendLine("MCP Process Manager extension activated");
+  outputChannel.appendLine("MCP ACS Process Manager extension activated");
 
   // Register with shared status bar
   await registerExtension("mcp-acs-process", {
-    displayName: "MCP Process Manager",
+    displayName: "MCP ACS Process Manager",
     status: "ok",
     settingsQuery: "mcp-process",
     actions: [
@@ -1547,10 +1434,10 @@ async function startProcess() {
   if (!mcpClient) {
     if (errorHandler) {
       await errorHandler.server.handleServerNotRunning(
-        new Error("MCP Process server not running")
+        new Error("MCP ACS Process server not running")
       );
     } else {
-      vscode.window.showErrorMessage("MCP Process server not running");
+      vscode.window.showErrorMessage("MCP ACS Process server not running");
     }
     return;
   }
@@ -1615,10 +1502,10 @@ async function terminateProcess(item: any) {
   if (!mcpClient) {
     if (errorHandler) {
       await errorHandler.server.handleServerNotRunning(
-        new Error("MCP Process server not running")
+        new Error("MCP ACS Process server not running")
       );
     } else {
-      vscode.window.showErrorMessage("MCP Process server not running");
+      vscode.window.showErrorMessage("MCP ACS Process server not running");
     }
     return;
   }
@@ -1672,10 +1559,10 @@ async function viewProcesses() {
   if (!mcpClient) {
     if (errorHandler) {
       await errorHandler.server.handleServerNotRunning(
-        new Error("MCP Process server not running")
+        new Error("MCP ACS Process server not running")
       );
     } else {
-      vscode.window.showErrorMessage("MCP Process server not running");
+      vscode.window.showErrorMessage("MCP ACS Process server not running");
     }
     return;
   }
@@ -1711,7 +1598,7 @@ async function viewProcesses() {
 
 async function viewStats(item: any) {
   if (!mcpClient) {
-    vscode.window.showErrorMessage("MCP Process server not running");
+    vscode.window.showErrorMessage("MCP ACS Process server not running");
     return;
   }
 
@@ -1747,7 +1634,7 @@ async function refreshProcessList() {
 
 async function showSecurityBoundaries() {
   if (!mcpClient) {
-    vscode.window.showErrorMessage("MCP Process server not running");
+    vscode.window.showErrorMessage("MCP ACS Process server not running");
     return;
   }
 
@@ -1755,7 +1642,7 @@ async function showSecurityBoundaries() {
 
   const panel = vscode.window.createWebviewPanel(
     "securityBoundaries",
-    "MCP Process Security Boundaries",
+    "MCP ACS Process Security Boundaries",
     vscode.ViewColumn.One,
     {}
   );
@@ -2098,7 +1985,7 @@ async function startLanguageServer(context: vscode.ExtensionContext) {
 
     languageClient = new LanguageClient(
       "mcpProcessLanguageServer",
-      "MCP Process Language Server",
+      "MCP ACS Process Language Server",
       serverOptions,
       clientOptions
     );

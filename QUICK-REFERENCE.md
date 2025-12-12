@@ -7,7 +7,7 @@
 npm install -g @ai-capabilities-suite/mcp-process
 
 # Install extension from marketplace
-# Search "MCP Process Manager" in VS Code Extensions
+# Search "MCP ACS Process Manager" in VS Code Extensions
 ```
 
 ## Configuration

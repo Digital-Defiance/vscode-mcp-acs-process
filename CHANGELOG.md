@@ -1,19 +1,19 @@
 # Change Log
 
-All notable changes to the "MCP Process Manager" extension will be documented in this file.
+All notable changes to the "MCP ACS Process Manager" extension will be documented in this file.
 
 ## [1.0.0] - 2024-12-04
 
 ### Added
 
-- Initial release of MCP Process Manager extension
+- Initial release of MCP ACS Process Manager extension
 - Process management panel with tree view
 - Security boundaries panel with tree view
 - Real-time process monitoring with auto-refresh
 - Process statistics webview with detailed metrics
 - Security boundaries webview with configuration display
 - Commands for starting, terminating, and monitoring processes
-- Integration with MCP Process Server via stdio transport
+- Integration with MCP ACS Process Server via stdio transport
 - Support for executable allowlist configuration
 - Resource usage display (CPU, memory, I/O)
 - Graceful and forced process termination

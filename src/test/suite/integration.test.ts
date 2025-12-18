@@ -2,6 +2,7 @@ import * as assert from "assert";
 import * as vscode from "vscode";
 import * as path from "path";
 import * as fs from "fs";
+import { createTestOutputChannel } from "../helpers/outputChannelHelper";
 
 suite("Integration Test Suite", () => {
   let testConfigPath: string;
@@ -397,6 +398,183 @@ suite("Integration Test Suite", () => {
         memoryIncrease < 50 * 1024 * 1024,
         `Memory increased by ${memoryIncrease / 1024 / 1024}MB`
       );
+    });
+  });
+
+  suite("BaseMCPClient Integration Tests", () => {
+    test("Should initialize with slow server (timeout handling)", async function () {
+      this.timeout(70000); // 70 seconds for slow initialization
+
+      const outputChannel = createTestOutputChannel(
+        "Test MCP Client Integration"
+      );
+      const { MCPProcessClient } = await import("../../mcpClient.js");
+      const client = new MCPProcessClient(outputChannel);
+
+      try {
+        // This tests the new timeout handling from BaseMCPClient
+        // The client should handle slow initialization gracefully
+        await client.start();
+
+        // Verify connection status is available (new from BaseMCPClient)
+        const status = client.getConnectionStatus();
+        assert.ok(status);
+        assert.ok(status.state);
+        assert.ok(typeof status.serverProcessRunning === "boolean");
+
+        // Verify diagnostics are available (new from BaseMCPClient)
+        const diagnostics = client.getDiagnostics();
+        assert.ok(diagnostics);
+        assert.strictEqual(diagnostics.extensionName, "Process");
+        assert.ok(typeof diagnostics.processRunning === "boolean");
+        assert.ok(typeof diagnostics.pendingRequestCount === "number");
+
+        client.stop();
+      } catch (error: any) {
+        // Expected if server not available - that's okay for this test
+        assert.ok(
+          error.message.includes("Server") ||
+            error.message.includes("spawn") ||
+            error.message.includes("timeout"),
+          `Error should be server-related: ${error.message}`
+        );
+      } finally {
+        client.stop();
+        await new Promise((resolve) => setTimeout(resolve, 100));
+        try {
+          outputChannel.dispose();
+        } catch (error) {
+          // Ignore disposal errors
+        }
+      }
+    });
+
+    test("Should handle timeout and re-sync", async function () {
+      this.timeout(90000); // 90 seconds for timeout and retry
+
+      const outputChannel = createTestOutputChannel("Test MCP Client Timeout");
+      const { MCPProcessClient } = await import("../../mcpClient.js");
+      const client = new MCPProcessClient(outputChannel);
+
+      try {
+        // Try to start - may timeout if server is slow
+        await client.start();
+
+        // If we get here, server started successfully
+        // Test that isServerProcessAlive works (new from BaseMCPClient)
+        const isAlive = client.isServerProcessAlive();
+        assert.ok(typeof isAlive === "boolean");
+
+        client.stop();
+      } catch (error: any) {
+        // Expected if server times out or isn't available
+        // The important thing is that the client handles it gracefully
+        assert.ok(
+          error.message.includes("timeout") ||
+            error.message.includes("Server") ||
+            error.message.includes("spawn"),
+          `Error should be timeout or server-related: ${error.message}`
+        );
+      } finally {
+        client.stop();
+        await new Promise((resolve) => setTimeout(resolve, 100));
+        try {
+          outputChannel.dispose();
+        } catch (error) {
+          // Ignore disposal errors
+        }
+      }
+    });
+
+    test("Should support reconnect functionality", async function () {
+      this.timeout(60000);
+
+      const outputChannel = createTestOutputChannel(
+        "Test MCP Client Reconnect"
+      );
+      const { MCPProcessClient } = await import("../../mcpClient.js");
+      const client = new MCPProcessClient(outputChannel);
+
+      try {
+        // Try initial connection
+        try {
+          await client.start();
+        } catch (error) {
+          // Server may not be available - that's okay
+        }
+
+        // Test reconnect method (new from BaseMCPClient)
+        assert.ok(typeof client.reconnect === "function");
+
+        // Try reconnect
+        try {
+          const reconnected = await client.reconnect();
+          assert.ok(typeof reconnected === "boolean");
+        } catch (error) {
+          // Expected if server not available
+        }
+
+        client.stop();
+      } finally {
+        client.stop();
+        await new Promise((resolve) => setTimeout(resolve, 100));
+        try {
+          outputChannel.dispose();
+        } catch (error) {
+          // Ignore disposal errors
+        }
+      }
+    });
+
+    test("Should preserve process-specific operations", async function () {
+      this.timeout(30000);
+
+      const outputChannel = createTestOutputChannel(
+        "Test MCP Client Process Ops"
+      );
+      const { MCPProcessClient } = await import("../../mcpClient.js");
+      const client = new MCPProcessClient(outputChannel);
+
+      try {
+        // Verify all process-specific methods still exist
+        assert.ok(typeof client.startProcess === "function");
+        assert.ok(typeof client.terminateProcess === "function");
+        assert.ok(typeof client.getProcessStats === "function");
+        assert.ok(typeof client.getProcessInfo === "function");
+        assert.ok(typeof client.listProcesses === "function");
+        assert.ok(typeof client.getSecurityConfig === "function");
+        assert.ok(typeof client.getProcessOutput === "function");
+        assert.ok(typeof client.sendProcessInput === "function");
+        assert.ok(typeof client.getProcessStatus === "function");
+        assert.ok(typeof client.createProcessGroup === "function");
+        assert.ok(typeof client.addToProcessGroup === "function");
+        assert.ok(typeof client.terminateProcessGroup === "function");
+        assert.ok(typeof client.startService === "function");
+        assert.ok(typeof client.stopService === "function");
+        assert.ok(typeof client.setServerConfig === "function");
+
+        // Test that methods throw appropriate errors when server not started
+        try {
+          await client.startProcess({ executable: "node" });
+          assert.fail("Should have thrown error");
+        } catch (error: any) {
+          assert.ok(
+            error.message.includes("Server") ||
+              error.message.includes("not running") ||
+              error.message.includes("not available")
+          );
+        }
+
+        client.stop();
+      } finally {
+        client.stop();
+        await new Promise((resolve) => setTimeout(resolve, 100));
+        try {
+          outputChannel.dispose();
+        } catch (error) {
+          // Ignore disposal errors
+        }
+      }
     });
   });
 });

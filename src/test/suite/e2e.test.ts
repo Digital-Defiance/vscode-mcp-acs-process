@@ -2,8 +2,9 @@ import * as assert from "assert";
 import * as vscode from "vscode";
 import * as path from "path";
 import * as fs from "fs";
-import { spawn, ChildProcess } from "child_process";
+import { spawn } from "child_process";
 import { MCPProcessClient } from "../../mcpClient";
+import { createTestOutputChannel } from "../helpers/outputChannelHelper";
 
 /**
  * Helper function to wait for a process to be registered with retries
@@ -40,7 +41,6 @@ async function waitForProcess<T>(
  * - Validate tree view content
  */
 suite("E2E Test Suite - Real MCP Server", () => {
-  let mcpServerProcess: ChildProcess | null = null;
   let testConfigPath: string;
   let mcpClient: MCPProcessClient | null = null;
 
@@ -122,15 +122,12 @@ suite("E2E Test Suite - Real MCP Server", () => {
     await new Promise((resolve) => setTimeout(resolve, 200));
 
     // Create MCP client with output channel for debugging
-    const outputChannel = vscode.window.createOutputChannel(
-      "E2E Test MCP Client"
-    );
+    const outputChannel = createTestOutputChannel("E2E Test MCP Client");
     mcpClient = new MCPProcessClient(outputChannel);
 
     try {
       await mcpClient.connect();
-      // Store reference to the server process that the client spawned
-      mcpServerProcess = mcpClient.serverProcess || null;
+      // Note: serverProcess is protected, we can't access it directly anymore
 
       // Wait a bit for server to fully initialize
       await new Promise((resolve) => setTimeout(resolve, 1000));
@@ -154,16 +151,6 @@ suite("E2E Test Suite - Real MCP Server", () => {
     if (mcpClient) {
       await mcpClient.disconnect();
       mcpClient = null;
-    }
-
-    // Kill MCP server
-    if (mcpServerProcess) {
-      mcpServerProcess.kill("SIGTERM");
-      await new Promise((resolve) => setTimeout(resolve, 1000));
-      if (!mcpServerProcess.killed) {
-        mcpServerProcess.kill("SIGKILL");
-      }
-      mcpServerProcess = null;
     }
 
     // Clean up test config

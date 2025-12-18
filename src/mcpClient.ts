@@ -1,6 +1,9 @@
 import * as vscode from "vscode";
-import * as child_process from "child_process";
 import * as path from "path";
+import {
+  BaseMCPClient,
+  LogOutputChannel,
+} from "@ai-capabilities-suite/mcp-client-base";
 
 export interface ProcessStartParams {
   executable: string;
@@ -89,27 +92,12 @@ export interface SecurityConfig {
   requireConfirmation?: boolean;
 }
 
-export class MCPProcessClient {
-  public serverProcess: child_process.ChildProcess | undefined;
-  public requestId = 0;
-  public pendingRequests = new Map<
-    number,
-    {
-      resolve: (value: any) => void;
-      reject: (error: any) => void;
-    }
-  >();
-  public config: any = {};
-  private outputChannel?: vscode.OutputChannel;
+export class MCPProcessClient extends BaseMCPClient {
   private serverConfig?: SecurityConfig;
   private tempConfigPath?: string;
 
-  constructor(configOrOutputChannel?: any) {
-    if (configOrOutputChannel && configOrOutputChannel.appendLine) {
-      this.outputChannel = configOrOutputChannel;
-    } else if (configOrOutputChannel) {
-      this.config = configOrOutputChannel;
-    }
+  constructor(outputChannel: LogOutputChannel) {
+    super("Process", outputChannel);
   }
 
   /**
@@ -128,20 +116,20 @@ export class MCPProcessClient {
     this.stop();
   }
 
-  async start(): Promise<void> {
+  // ========== Abstract Method Implementations ==========
+
+  protected getServerCommand(): { command: string; args: string[] } {
     const config = vscode.workspace.getConfiguration("mcp-process");
     const serverPath = config.get<string>("server.serverPath");
     const configPath = config.get<string>("server.configPath");
     const useConfigFile = config.get<boolean>("server.useConfigFile", false);
 
-    // Determine server executable
     let serverCommand: string;
     let args: string[] = [];
 
     if (process.env.VSCODE_TEST_MODE === "true") {
       try {
         // In test mode, use the local build
-        // We need to find the extension path to resolve the relative path to the server
         let extensionPath = "";
         const extension = vscode.extensions.getExtension(
           "DigitalDefiance.mcp-acs-process"
@@ -157,32 +145,13 @@ export class MCPProcessClient {
             "../mcp-process/dist/cli.js"
           );
           args = [serverScript];
-          if (this.outputChannel) {
-            this.outputChannel.appendLine(
-              `Test mode: Using local server at ${serverScript}`
-            );
-          }
         } else {
-          if (this.outputChannel) {
-            this.outputChannel.appendLine(
-              "Test mode: Could not find extension path, falling back to configuration"
-            );
-          }
-          if (serverPath && serverPath.length > 0) {
-            serverCommand = serverPath;
-          } else {
-            serverCommand = "mcp-process";
-          }
+          serverCommand =
+            serverPath && serverPath.length > 0 ? serverPath : "mcp-process";
         }
       } catch (error) {
-        if (this.outputChannel) {
-          this.outputChannel.appendLine(`Test mode error: ${error}`);
-        }
-        if (serverPath && serverPath.length > 0) {
-          serverCommand = serverPath;
-        } else {
-          serverCommand = "mcp-process";
-        }
+        serverCommand =
+          serverPath && serverPath.length > 0 ? serverPath : "mcp-process";
       }
     } else {
       if (serverPath && serverPath.length > 0) {
@@ -194,178 +163,101 @@ export class MCPProcessClient {
       }
     }
 
-    // Prepare environment variables
-    const env = { ...process.env };
-
-    // Handle configuration
+    // Handle configuration file argument
     if (useConfigFile && configPath && configPath.length > 0) {
-      // Use the specified config file
       args.push("--config", configPath);
-    } else if (this.serverConfig) {
-      // Pass configuration via environment variable to avoid path issues across OS boundaries (WSL/Windows)
-      env["MCP_PROCESS_CONFIG"] = JSON.stringify(this.serverConfig);
+    }
 
-      if (this.outputChannel) {
-        this.outputChannel.appendLine(
-          `Passing configuration via MCP_PROCESS_CONFIG environment variable`
+    return { command: serverCommand, args };
+  }
+
+  protected getServerEnv(): Record<string, string> {
+    const config = vscode.workspace.getConfiguration("mcp-process");
+    const configPath = config.get<string>("server.configPath");
+    const useConfigFile = config.get<boolean>("server.useConfigFile", false);
+
+    const env: Record<string, string> = {};
+
+    // Copy process.env, filtering out undefined values
+    for (const [key, value] of Object.entries(process.env)) {
+      if (value !== undefined) {
+        env[key] = value;
+      }
+    }
+
+    // Handle configuration - only pass via env if NOT using config file
+    if (!useConfigFile || !configPath || configPath.length === 0) {
+      if (this.serverConfig) {
+        // Pass configuration via environment variable
+        env["MCP_PROCESS_CONFIG"] = JSON.stringify(this.serverConfig);
+        this.log(
+          "info",
+          "Passing configuration via MCP_PROCESS_CONFIG environment variable"
         );
       }
     }
 
-    if (this.outputChannel) {
-      this.outputChannel.appendLine(
-        `Starting MCP server: ${serverCommand} ${args.join(" ")}`
-      );
-    }
+    return env;
+  }
 
-    // Spawn server process
-    this.serverProcess = child_process.spawn(serverCommand, args, {
-      stdio: ["pipe", "pipe", "pipe"],
-      env,
-    });
-
-    // Handle spawn errors immediately
-    this.serverProcess.on("error", (error: Error) => {
-      if (this.outputChannel) {
-        this.outputChannel.appendLine(`Server spawn error: ${error.message}`);
-      }
-      // Reject all pending requests
-      for (const [id, { reject }] of this.pendingRequests) {
-        reject(error);
-      }
-      this.pendingRequests.clear();
-    });
-
-    if (
-      !this.serverProcess.stdin ||
-      !this.serverProcess.stdout ||
-      !this.serverProcess.stderr
-    ) {
-      throw new Error("Failed to create server process stdio streams");
-    }
-
-    // Handle server output
-    let buffer = "";
-    this.serverProcess.stdout.on("data", (data: Buffer) => {
-      buffer += data.toString();
-
-      // Process complete JSON-RPC messages
-      const lines = buffer.split("\n");
-      buffer = lines.pop() || "";
-
-      for (const line of lines) {
-        if (line.trim().length === 0) {
-          continue;
-        }
-
-        try {
-          const message = JSON.parse(line);
-          this.handleMessage(message);
-        } catch (error) {
-          if (this.outputChannel) {
-            this.outputChannel.appendLine(`Failed to parse message: ${line}`);
-          }
-        }
-      }
-    });
-
-    this.serverProcess.stderr.on("data", (data: Buffer) => {
-      if (this.outputChannel) {
-        this.outputChannel.appendLine(`Server stderr: ${data.toString()}`);
-      }
-    });
-
-    this.serverProcess.on("exit", (code, signal) => {
-      if (this.outputChannel) {
-        this.outputChannel.appendLine(
-          `Server exited with code ${code}, signal ${signal}`
-        );
-      }
-      this.serverProcess = undefined;
-
-      // Reject all pending requests
-      for (const [id, { reject }] of this.pendingRequests) {
-        reject(new Error("Server process exited"));
-      }
-      this.pendingRequests.clear();
-
-      // Clean up temp config file if it exists
-      if (this.tempConfigPath) {
-        try {
-          const fs = require("fs");
-          if (fs.existsSync(this.tempConfigPath)) {
-            fs.unlinkSync(this.tempConfigPath);
-            if (this.outputChannel) {
-              this.outputChannel.appendLine(
-                `Cleaned up temporary config file: ${this.tempConfigPath}`
-              );
-            }
-          }
-        } catch (error) {
-          if (this.outputChannel) {
-            this.outputChannel.appendLine(
-              `Failed to clean up temp config: ${error}`
-            );
-          }
-        }
-        this.tempConfigPath = undefined;
-      }
-    });
-
-    // Initialize MCP protocol
-    await this.sendRequest("initialize", {
-      protocolVersion: "2024-11-05",
-      capabilities: {},
-      clientInfo: {
-        name: "vscode-mcp-process",
-        version: "1.0.0",
-      },
-    });
-
+  protected async onServerReady(): Promise<void> {
     // Send initialized notification
     await this.sendNotification("initialized", {});
 
-    // Load configuration
+    // Load configuration - list available tools
     try {
       const tools = await this.sendRequest("tools/list", {});
-      if (this.outputChannel) {
-        this.outputChannel.appendLine(`Server tools: ${JSON.stringify(tools)}`);
-      }
+      this.log("info", `Server tools loaded: ${JSON.stringify(tools)}`);
     } catch (error) {
-      if (this.outputChannel) {
-        this.outputChannel.appendLine(`Failed to list tools: ${error}`);
-      }
+      this.log("warn", `Failed to list tools: ${error}`);
     }
   }
 
-  stop(): void {
-    if (this.serverProcess) {
-      this.serverProcess.kill();
-      this.serverProcess = undefined;
-    }
+  // Override stop to add cleanup
+  override stop(): void {
+    this.cleanupTempConfig();
+    // Call parent stop
+    super.stop();
+  }
 
-    // Clean up temp config file if it exists
+  // Override handleServerExit to ensure cleanup on crash
+  protected override handleServerExit(
+    code: number | null,
+    signal: string | null
+  ): void {
+    this.cleanupTempConfig();
+    // Call parent handler
+    super.handleServerExit(code, signal);
+  }
+
+  // Override handleServerError to match old behavior of clearing pending requests
+  protected override handleServerError(error: Error): void {
+    // Clear pending requests immediately on spawn error (matches old behavior)
+    this.clearPendingRequests();
+    // Call parent handler
+    super.handleServerError(error);
+  }
+
+  // Helper method to clean up temp config file
+  private cleanupTempConfig(): void {
     if (this.tempConfigPath) {
       try {
         const fs = require("fs");
         if (fs.existsSync(this.tempConfigPath)) {
           fs.unlinkSync(this.tempConfigPath);
-          if (this.outputChannel) {
-            this.outputChannel.appendLine(
-              `Cleaned up temporary config file: ${this.tempConfigPath}`
-            );
-          }
-        }
-      } catch (error) {
-        if (this.outputChannel) {
-          this.outputChannel.appendLine(
-            `Failed to clean up temp config: ${error}`
+          this.log(
+            "info",
+            `Cleaned up temporary config file: ${this.tempConfigPath}`
           );
         }
+      } catch (error) {
+        this.log("warn", `Failed to clean up temp config: ${error}`);
       }
       this.tempConfigPath = undefined;
     }
   }
+
+  // ========== Process-Specific Methods ==========
 
   async startProcess(params: ProcessStartParams): Promise<string> {
     // Normalize params - MCP server expects 'cwd' not 'workingDirectory'
@@ -375,7 +267,10 @@ export class MCPProcessClient {
     };
     delete normalizedParams.workingDirectory;
 
-    const result = await this.callTool("process_start", normalizedParams);
+    const result = (await this.callTool(
+      "process_start",
+      normalizedParams
+    )) as any;
     // MCP server returns { pid: number }
     const pid = result.pid?.toString() || result.id || result.processId;
     return pid;
@@ -388,7 +283,7 @@ export class MCPProcessClient {
       typeof processIdOrParams === "string"
         ? { pid: parseInt(processIdOrParams, 10) }
         : processIdOrParams;
-    return await this.callTool("process_terminate", params);
+    return (await this.callTool("process_terminate", params)) as any;
   }
 
   async getProcessStats(
@@ -398,7 +293,7 @@ export class MCPProcessClient {
       typeof processIdOrParams === "string"
         ? { pid: parseInt(processIdOrParams, 10) }
         : processIdOrParams;
-    return await this.callTool("process_get_stats", params);
+    return (await this.callTool("process_get_stats", params)) as any;
   }
 
   async getProcessInfo(processId: string): Promise<ProcessInfo> {
@@ -406,11 +301,11 @@ export class MCPProcessClient {
     const result = await this.callTool("process_get_status", {
       pid: parseInt(processId, 10),
     });
-    return result;
+    return result as any;
   }
 
   async listProcesses(): Promise<ProcessInfo[]> {
-    const result = await this.callTool("process_list", {});
+    const result = (await this.callTool("process_list", {})) as any;
     return result.processes || result || [];
   }
 
@@ -446,7 +341,7 @@ export class MCPProcessClient {
     lines?: number;
   }): Promise<{ output: string }> {
     const result = await this.callTool("process_get_output", params);
-    return result;
+    return result as any;
   }
 
   async sendProcessInput(params: { pid: number; data: string }): Promise<void> {
@@ -455,7 +350,7 @@ export class MCPProcessClient {
 
   async getProcessStatus(params: { pid: number }): Promise<ProcessInfo> {
     const result = await this.callTool("process_get_status", params);
-    return result;
+    return result as any;
   }
 
   async createProcessGroup(params: {
@@ -463,7 +358,7 @@ export class MCPProcessClient {
     pids?: number[];
   }): Promise<{ groupId: string }> {
     const result = await this.callTool("process_create_group", params);
-    return result;
+    return result as any;
   }
 
   async addToProcessGroup(params: {
@@ -487,22 +382,31 @@ export class MCPProcessClient {
     autoRestart?: boolean;
   }): Promise<{ serviceId: string }> {
     const result = await this.callTool("process_start_service", params);
-    return result;
+    return result as any;
   }
 
   async stopService(params: { name: string }): Promise<void> {
     await this.callTool("process_stop_service", params);
   }
 
+  /**
+   * Get configuration (for backward compatibility)
+   * Note: This returns an empty object as the old implementation did.
+   * The actual server configuration is managed via setServerConfig().
+   */
   getConfig(): any {
-    return this.config;
+    return {};
   }
 
-  private async callTool(name: string, args: any): Promise<any> {
-    const result = await this.sendRequest("tools/call", {
+  // Override callTool to handle MCP-specific response format
+  protected override async callTool(
+    name: string,
+    args: unknown
+  ): Promise<unknown> {
+    const result = (await this.sendRequest("tools/call", {
       name,
       arguments: args,
-    });
+    })) as any;
 
     if (result.isError) {
       throw new Error(result.content[0]?.text || "Tool call failed");
@@ -519,72 +423,5 @@ export class MCPProcessClient {
     }
 
     return result;
-  }
-
-  private async sendRequest(method: string, params: any): Promise<any> {
-    if (!this.serverProcess || !this.serverProcess.stdin) {
-      throw new Error("Server not running");
-    }
-
-    const id = ++this.requestId;
-    const request = {
-      jsonrpc: "2.0",
-      id,
-      method,
-      params,
-    };
-
-    return new Promise((resolve, reject) => {
-      this.pendingRequests.set(id, { resolve, reject });
-
-      const message = JSON.stringify(request) + "\n";
-      this.serverProcess!.stdin!.write(message);
-
-      // Set timeout
-      setTimeout(() => {
-        if (this.pendingRequests.has(id)) {
-          this.pendingRequests.delete(id);
-          reject(new Error("Request timeout"));
-        }
-      }, 30000);
-    });
-  }
-
-  private async sendNotification(method: string, params: any): Promise<void> {
-    if (!this.serverProcess || !this.serverProcess.stdin) {
-      throw new Error("Server not running");
-    }
-
-    const notification = {
-      jsonrpc: "2.0",
-      method,
-      params,
-    };
-
-    const message = JSON.stringify(notification) + "\n";
-    this.serverProcess.stdin.write(message);
-  }
-
-  private handleMessage(message: any): void {
-    if (message.id !== undefined) {
-      // Response to a request
-      const pending = this.pendingRequests.get(message.id);
-      if (pending) {
-        this.pendingRequests.delete(message.id);
-
-        if (message.error) {
-          pending.reject(new Error(message.error.message || "Request failed"));
-        } else {
-          pending.resolve(message.result);
-        }
-      }
-    } else {
-      // Notification from server
-      if (this.outputChannel) {
-        this.outputChannel.appendLine(
-          `Server notification: ${JSON.stringify(message)}`
-        );
-      }
-    }
   }
 }

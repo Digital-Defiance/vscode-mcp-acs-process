@@ -7,10 +7,10 @@ __metadata:
 
 "@ai-capabilities-suite/mcp-client-base@file:../mcp-client-base::locator=mcp-acs-process%40workspace%3A.":
   version: 1.0.0
-  resolution: "@ai-capabilities-suite/mcp-client-base@file:../mcp-client-base#../mcp-client-base::hash=a187ec&locator=mcp-acs-process%40workspace%3A."
+  resolution: "@ai-capabilities-suite/mcp-client-base@file:../mcp-client-base#../mcp-client-base::hash=89ab73&locator=mcp-acs-process%40workspace%3A."
   peerDependencies:
     vscode: ^1.85.0
-  checksum: 10c0/981c7fa0ef59262fc9604b4902d2ebbe0c08ff2466b8d14d1c54ee37b16a54dc7eb912c3724d81d75a89fc433e9e277a547a54f4d22192e50635dfb0559d4327
+  checksum: 10c0/7f6768abf59f4c25fed27d7e8e5d36c38980547c0e2a8b20b3071e2b233a0bdfc90a89c801d3609bf84c344827481946d6a22604e69f634e2dabc64361d3ab58
   languageName: node
   linkType: hard
 

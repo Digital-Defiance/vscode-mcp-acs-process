@@ -2,7 +2,7 @@
   "name": "mcp-acs-process",
   "displayName": "MCP ACS Process Manager",
   "description": "Process management for AI agents with MCP integration and security boundaries. Part of the Digital Defiance AI Capabilities Suite.",
-  "version": "1.5.11",
+  "version": "1.5.12",
   "packageManager": "yarn@4.12.0",
   "publisher": "DigitalDefiance",
   "icon": "images/icon.png",
@@ -435,6 +435,16 @@
         "command": "mcp-process.validateConfiguration",
         "title": "MCP ACS Process: Validate Configuration",
         "icon": "$(check)"
+      },
+      {
+        "command": "mcp-process.reconnectToServer",
+        "title": "MCP ACS Process: Reconnect to Server",
+        "icon": "$(plug)"
+      },
+      {
+        "command": "mcp-process.showDiagnostics",
+        "title": "MCP ACS Process: Show Server Diagnostics",
+        "icon": "$(info)"
       }
     ],
     "viewsContainers": {
@@ -562,6 +572,12 @@
         },
         {
           "command": "mcp-process.validateConfiguration"
+        },
+        {
+          "command": "mcp-process.reconnectToServer"
+        },
+        {
+          "command": "mcp-process.showDiagnostics"
         }
       ]
     },
@@ -598,6 +614,34 @@
           ],
           "default": "info",
           "markdownDescription": "Log level for MCP process manager.\n\n- `debug`: Verbose logging for troubleshooting\n- `info`: Standard operational logging\n- `warn`: Warning messages only\n- `error`: Error messages only"
+        },
+        "mcp-process.timeout.initialization": {
+          "type": "number",
+          "default": 60000,
+          "minimum": 10000,
+          "maximum": 300000,
+          "markdownDescription": "Timeout in milliseconds for server initialization (10-300 seconds).\n\n**Connection Management:** Maximum time to wait for the MCP server to initialize and respond to the initial handshake.\n\n**Default:** 60000 ms (60 seconds)\n\n**Range:** 10000-300000 ms (10-300 seconds)\n\n**Note:** If the server takes longer than this to initialize, the extension will attempt re-synchronization. Increase this value if you have a slow system or the server consistently times out during startup."
+        },
+        "mcp-process.timeout.standardRequest": {
+          "type": "number",
+          "default": 30000,
+          "minimum": 5000,
+          "maximum": 120000,
+          "markdownDescription": "Timeout in milliseconds for standard requests (5-120 seconds).\n\n**Connection Management:** Maximum time to wait for responses to standard process management requests.\n\n**Default:** 30000 ms (30 seconds)\n\n**Range:** 5000-120000 ms (5-120 seconds)\n\n**Note:** This timeout applies to most operations like starting processes, getting stats, etc. Must be less than or equal to initialization timeout."
+        },
+        "mcp-process.reconnect.maxRetries": {
+          "type": "number",
+          "default": 3,
+          "minimum": 0,
+          "maximum": 10,
+          "markdownDescription": "Maximum number of reconnection attempts after timeout.\n\n**Connection Management:** When a timeout occurs but the server process is still running, the extension will attempt to re-synchronize this many times before giving up.\n\n**Default:** 3 attempts\n\n**Range:** 0-10 attempts\n\n**Note:** Set to 0 to disable automatic reconnection. Each retry uses exponential backoff."
+        },
+        "mcp-process.reconnect.retryDelay": {
+          "type": "number",
+          "default": 2000,
+          "minimum": 1000,
+          "maximum": 10000,
+          "markdownDescription": "Initial delay in milliseconds between reconnection attempts.\n\n**Connection Management:** The first retry will wait this long. Subsequent retries use exponential backoff (multiplied by 1.5 each time).\n\n**Default:** 2000 ms (2 seconds)\n\n**Range:** 1000-10000 ms (1-10 seconds)\n\n**Example:** With default settings, retries occur at 2s, 3s, and 4.5s after the timeout."
         },
         "mcp-process.executable.allowedExecutables": {
           "type": "array",
@@ -1046,7 +1090,7 @@
     "typescript": "^5.3.3"
   },
   "dependencies": {
-    "@ai-capabilities-suite/mcp-client-base": "^1.0.0",
+    "@ai-capabilities-suite/mcp-client-base": "file:../mcp-client-base",
     "@ai-capabilities-suite/mcp-process": "^1.5.9",
     "@ai-capabilities-suite/vscode-shared-status-bar": "^1.0.21",
     "@modelcontextprotocol/sdk": "^0.5.0",

@@ -96,7 +96,7 @@ suite("Process Tree Provider Test Suite", () => {
         status: "running",
         state: "running",
         uptime: 5000,
-      startTime: new Date().toISOString(),
+        startTime: new Date().toISOString(),
       };
 
       const item = new ProcessTreeItem(
@@ -122,7 +122,7 @@ suite("Process Tree Provider Test Suite", () => {
         status: "stopped",
         state: "stopped",
         uptime: 10000,
-      startTime: new Date().toISOString(),
+        startTime: new Date().toISOString(),
       };
 
       const item = new ProcessTreeItem(
@@ -148,7 +148,7 @@ suite("Process Tree Provider Test Suite", () => {
         status: "crashed",
         state: "crashed",
         uptime: 2000,
-      startTime: new Date().toISOString(),
+        startTime: new Date().toISOString(),
       };
 
       const item = new ProcessTreeItem(
@@ -174,7 +174,7 @@ suite("Process Tree Provider Test Suite", () => {
         status: "running",
         state: "running",
         uptime: 65000,
-      startTime: new Date().toISOString(), // 65 seconds
+        startTime: new Date().toISOString(), // 65 seconds
       };
 
       const item = new ProcessTreeItem(
@@ -197,7 +197,7 @@ suite("Process Tree Provider Test Suite", () => {
         status: "running",
         state: "running",
         uptime: 1000,
-      startTime: new Date().toISOString(),
+        startTime: new Date().toISOString(),
       };
 
       const item = new ProcessTreeItem(
@@ -224,7 +224,7 @@ suite("Process Tree Provider Test Suite", () => {
         status: "running",
         state: "running",
         uptime: 1000,
-      startTime: new Date().toISOString(),
+        startTime: new Date().toISOString(),
       };
 
       const item = new ProcessTreeItem(
@@ -246,7 +246,7 @@ suite("Process Tree Provider Test Suite", () => {
         status: "running",
         state: "running",
         uptime: 1000,
-      startTime: new Date().toISOString(),
+        startTime: new Date().toISOString(),
       };
 
       const item = new ProcessTreeItem(
@@ -268,7 +268,7 @@ suite("Process Tree Provider Test Suite", () => {
         status: "running",
         state: "running",
         uptime: 1000,
-      startTime: new Date().toISOString(),
+        startTime: new Date().toISOString(),
       };
 
       const item = new ProcessTreeItem(
@@ -300,7 +300,7 @@ suite("Process Tree Provider Test Suite", () => {
             status: "running",
             state: "running",
             uptime: 5000,
-      startTime: new Date().toISOString(),
+            startTime: new Date().toISOString(),
           },
           {
             id: "5678",
@@ -311,9 +311,18 @@ suite("Process Tree Provider Test Suite", () => {
             status: "running",
             state: "running",
             uptime: 10000,
-      startTime: new Date().toISOString(),
+            startTime: new Date().toISOString(),
           },
         ],
+        onStateChange: () => ({
+          dispose: () => {},
+        }),
+        getConnectionStatus: () => ({
+          state: "connected" as any,
+          message: "Connected",
+          serverProcessRunning: true,
+          timestamp: Date.now(),
+        }),
       };
     });
 
@@ -323,8 +332,10 @@ suite("Process Tree Provider Test Suite", () => {
 
       const children = await provider.getChildren();
       assert.strictEqual(children.length, 2);
-      assert.strictEqual(children[0].pid, 1234);
-      assert.strictEqual(children[1].pid, 5678);
+      assert.ok(children[0] instanceof ProcessTreeItem);
+      assert.ok(children[1] instanceof ProcessTreeItem);
+      assert.strictEqual((children[0] as ProcessTreeItem).pid, 1234);
+      assert.strictEqual((children[1] as ProcessTreeItem).pid, 5678);
     });
 
     test("Should handle client errors gracefully", async () => {
@@ -332,6 +343,15 @@ suite("Process Tree Provider Test Suite", () => {
         listProcesses: async () => {
           throw new Error("Connection failed");
         },
+        onStateChange: () => ({
+          dispose: () => {},
+        }),
+        getConnectionStatus: () => ({
+          state: "connected" as any,
+          message: "Connected",
+          serverProcessRunning: true,
+          timestamp: Date.now(),
+        }),
       };
 
       provider.setMCPClient(errorClient as unknown as MCPProcessClient);
@@ -344,6 +364,15 @@ suite("Process Tree Provider Test Suite", () => {
     test("Should handle empty process list", async () => {
       const emptyClient = {
         listProcesses: async () => [],
+        onStateChange: () => ({
+          dispose: () => {},
+        }),
+        getConnectionStatus: () => ({
+          state: "connected" as any,
+          message: "Connected",
+          serverProcessRunning: true,
+          timestamp: Date.now(),
+        }),
       };
 
       provider.setMCPClient(emptyClient as unknown as MCPProcessClient);

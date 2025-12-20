@@ -183,7 +183,7 @@ Open VS Code settings (Ctrl+, / Cmd+,) and set:
 
 ## Configuration
 
-The MCP ACS Process Manager provides comprehensive configuration through VS Code's native settings UI. All 50+ settings are organized into 8 logical categories for easy discovery and management.
+The MCP ACS Process Manager provides comprehensive configuration through VS Code's native settings UI. All 50+ settings are organized into 9 logical categories for easy discovery and management.
 
 ### Quick Configuration
 
@@ -214,7 +214,89 @@ Controls server connection and startup behavior.
 }
 ```
 
-#### 2. Executable Control (`mcp-process.executable.*`)
+#### 2. Timeout & Connection Settings (`mcp-process.timeout.*`, `mcp-process.reconnect.*`)
+
+Controls timeout behavior and automatic reconnection. These settings use the shared `@ai-capabilities-suite/mcp-client-base` package for consistent timeout handling across all MCP extensions.
+
+| Setting                   | Type   | Default | Description                                    |
+| ------------------------- | ------ | ------- | ---------------------------------------------- |
+| `timeout.initialization`  | number | 60000   | Initialization timeout in ms (10-300 seconds)  |
+| `timeout.standardRequest` | number | 30000   | Standard request timeout in ms (5-120 seconds) |
+| `reconnect.maxRetries`    | number | 3       | Maximum reconnection attempts (0-10)           |
+| `reconnect.retryDelay`    | number | 2000    | Initial retry delay in ms (1-10 seconds)       |
+
+**How Timeout Management Works:**
+
+The extension uses different timeout values for different operations:
+
+- **Initialization Timeout** (60s default): Used when starting the server and during the initial handshake. Server startup can be slow, especially on first run.
+- **Standard Request Timeout** (30s default): Used for normal process management operations like starting, terminating, or monitoring processes.
+
+**Automatic Re-synchronization:**
+
+When a timeout occurs during initialization but the server process is still running, the extension automatically attempts to re-synchronize using exponential backoff:
+
+1. First retry after 2 seconds
+2. Second retry after 3 seconds (2s × 1.5)
+3. Third retry after 4.5 seconds (3s × 1.5)
+
+This prevents false failures when the server is slow to start but still functional.
+
+**Example - Fast Local Development:**
+
+```json
+{
+  "mcp-process.timeout.initialization": 30000,
+  "mcp-process.timeout.standardRequest": 15000,
+  "mcp-process.reconnect.maxRetries": 2,
+  "mcp-process.reconnect.retryDelay": 1000
+}
+```
+
+**Example - Slow Systems or Remote Servers:**
+
+```json
+{
+  "mcp-process.timeout.initialization": 120000,
+  "mcp-process.timeout.standardRequest": 60000,
+  "mcp-process.reconnect.maxRetries": 5,
+  "mcp-process.reconnect.retryDelay": 3000
+}
+```
+
+**Example - CI/CD Environments:**
+
+```json
+{
+  "mcp-process.timeout.initialization": 90000,
+  "mcp-process.timeout.standardRequest": 45000,
+  "mcp-process.reconnect.maxRetries": 3,
+  "mcp-process.reconnect.retryDelay": 2000
+}
+```
+
+**When to Adjust Timeouts:**
+
+- **Increase initialization timeout** if you see "Server initialization timeout" errors but the server eventually starts
+- **Increase standard request timeout** if process operations fail with timeout errors
+- **Increase retry count** if the server is intermittently slow but eventually responds
+- **Decrease timeouts** if you want faster failure detection on truly broken servers
+
+**Connection State Indicators:**
+
+The extension displays connection state in the tree view:
+
+- **"Connecting to server..."** - Initial connection in progress
+- **"Connection timeout - retrying (1/3)"** - Timeout occurred, attempting retry
+- **"Connected"** - Successfully connected and ready
+- **"Disconnected"** - Not connected to server
+- **"Error: [message]"** - Unrecoverable error occurred
+
+**Technical Details:**
+
+The timeout and reconnection logic is provided by the shared `@ai-capabilities-suite/mcp-client-base` package, which ensures consistent behavior across all MCP extensions (Process, Screenshot, Debugger, Filesystem). See the [mcp-client-base documentation](https://github.com/Digital-Defiance/ai-capabilities-suite/tree/main/packages/mcp-client-base) for more details.
+
+#### 3. Executable Control (`mcp-process.executable.*`)
 
 Controls which executables can be launched and how arguments are validated.
 
@@ -262,7 +344,7 @@ Controls which executables can be launched and how arguments are validated.
 }
 ```
 
-#### 3. Resource Limits (`mcp-process.resources.*`)
+#### 4. Resource Limits (`mcp-process.resources.*`)
 
 Controls CPU, memory, and other resource limits for spawned processes.
 
@@ -299,7 +381,7 @@ Controls CPU, memory, and other resource limits for spawned processes.
 }
 ```
 
-#### 4. Process Limits (`mcp-process.process.*`)
+#### 5. Process Limits (`mcp-process.process.*`)
 
 Controls process concurrency and rate limiting.
 
@@ -324,7 +406,7 @@ Controls process concurrency and rate limiting.
 }
 ```
 
-#### 5. I/O Control (`mcp-process.io.*`)
+#### 6. I/O Control (`mcp-process.io.*`)
 
 Controls stdin/stdout behavior and buffer sizes.
 
@@ -346,7 +428,7 @@ Controls stdin/stdout behavior and buffer sizes.
 }
 ```
 
-#### 6. Security Settings (`mcp-process.security.*`)
+#### 7. Security Settings (`mcp-process.security.*`)
 
 Controls process termination, confirmation, and access control.
 
@@ -377,7 +459,7 @@ Controls process termination, confirmation, and access control.
 }
 ```
 
-#### 7. Advanced Security (`mcp-process.security.advanced.*`)
+#### 8. Advanced Security (`mcp-process.security.advanced.*`)
 
 Advanced isolation features (Linux-specific).
 
@@ -420,7 +502,7 @@ Advanced isolation features (Linux-specific).
 }
 ```
 
-#### 8. Audit & Monitoring (`mcp-process.audit.*`)
+#### 9. Audit & Monitoring (`mcp-process.audit.*`)
 
 Controls audit logging and security alerts.
 
@@ -446,7 +528,7 @@ Controls audit logging and security alerts.
 }
 ```
 
-#### 9. UI Preferences (`mcp-process.ui.*`)
+#### 10. UI Preferences (`mcp-process.ui.*`)
 
 Controls UI behavior and display options.
 
@@ -466,6 +548,60 @@ Controls UI behavior and display options.
   "mcp-process.ui.showSecurityWarnings": true
 }
 ```
+
+### Shared MCP Client Base Package
+
+The timeout and connection management features are provided by the shared `@ai-capabilities-suite/mcp-client-base` package. This package is used by all MCP extensions in the AI Capabilities Suite (Process, Screenshot, Debugger, Filesystem) to provide consistent behavior.
+
+**Benefits of the shared package:**
+
+- **Consistent timeout handling** across all MCP extensions
+- **Automatic re-synchronization** with exponential backoff
+- **Connection state management** with listener notifications
+- **Diagnostic commands** for troubleshooting
+- **Comprehensive logging** with timestamps and request IDs
+- **Well-tested** with unit tests and property-based tests
+
+**For more information:**
+
+- [mcp-client-base README](https://github.com/Digital-Defiance/ai-capabilities-suite/tree/main/packages/mcp-client-base)
+- [API Documentation](https://github.com/Digital-Defiance/ai-capabilities-suite/tree/main/packages/mcp-client-base/docs/API.md)
+- [Configuration Guide](https://github.com/Digital-Defiance/ai-capabilities-suite/tree/main/packages/mcp-client-base/docs/CONFIGURATION.md)
+- [Troubleshooting Guide](https://github.com/Digital-Defiance/ai-capabilities-suite/tree/main/packages/mcp-client-base/docs/TROUBLESHOOTING.md)
+
+**How the Process extension uses mcp-client-base:**
+
+The Process extension's `MCPProcessClient` extends `BaseMCPClient` from the shared package, inheriting all timeout and connection management features. The extension-specific settings (`mcp-process.timeout.*` and `mcp-process.reconnect.*`) are passed to the base client during initialization.
+
+```typescript
+// Simplified example of how the Process extension uses BaseMCPClient
+import { BaseMCPClient } from "@ai-capabilities-suite/mcp-client-base";
+
+export class MCPProcessClient extends BaseMCPClient {
+  constructor(outputChannel: vscode.LogOutputChannel, config: MCPClientConfig) {
+    super(outputChannel, {
+      timeout: {
+        initializationTimeoutMs: config.timeout.initialization,
+        standardRequestTimeoutMs: config.timeout.standardRequest,
+        toolsListTimeoutMs: config.timeout.initialization,
+      },
+      reSync: {
+        maxRetries: config.reconnect.maxRetries,
+        retryDelayMs: config.reconnect.retryDelay,
+        backoffMultiplier: 1.5,
+      },
+      logging: {
+        logLevel: config.server.logLevel,
+        logCommunication: true,
+      },
+    });
+  }
+
+  // Extension-specific methods...
+}
+```
+
+This architecture ensures that improvements to timeout handling and connection management benefit all MCP extensions automatically.
 
 ### Configuration Presets
 
@@ -587,8 +723,12 @@ See the [MCP ACS Process Server documentation](https://github.com/digital-defian
 
 ## Commands
 
-| Command                                       | Description            | Shortcut |
-| --------------------------------------------- | ---------------------- | -------- |
+The extension provides commands for process management and troubleshooting. Access commands via the Command Palette (Ctrl+Shift+P / Cmd+Shift+P).
+
+### Process Management Commands
+
+| Command                                           | Description            | Shortcut |
+| ------------------------------------------------- | ---------------------- | -------- |
 | `MCP ACS Process: Start Process`                  | Launch a new process   | -        |
 | `MCP ACS Process: Terminate Process`              | Stop a running process | -        |
 | `MCP ACS Process: View All Processes`             | Show process list      | -        |
@@ -596,6 +736,41 @@ See the [MCP ACS Process Server documentation](https://github.com/digital-defian
 | `MCP ACS Process: Refresh Process List`           | Refresh the tree view  | -        |
 | `MCP ACS Process: Show Security Boundaries`       | View security config   | -        |
 | `MCP ACS Process: Configure Executable Allowlist` | Edit allowlist         | -        |
+
+### Connection & Recovery Commands
+
+These commands help troubleshoot and recover from connection issues:
+
+| Command                                    | Description                                    | When to Use                         |
+| ------------------------------------------ | ---------------------------------------------- | ----------------------------------- |
+| `MCP ACS Process: Reconnect to Server`     | Attempt to reconnect without restarting server | Server is running but unresponsive  |
+| `MCP ACS Process: Restart Server`          | Stop and restart the MCP server process        | Server is in a bad state or crashed |
+| `MCP ACS Process: Show Server Diagnostics` | Display detailed server connection diagnostics | Troubleshooting connection issues   |
+
+**Reconnect to Server:**
+
+- Attempts to re-establish communication with the server without killing the process
+- Uses the same re-synchronization logic as automatic timeout recovery
+- Useful when the server is running but the extension lost connection
+- Shows success/failure notification with details
+
+**Restart Server:**
+
+- Terminates the existing server process and starts a new one
+- Clears all pending requests and resets connection state
+- Use when the server is truly stuck or in an unrecoverable state
+- All running processes managed by the old server will be orphaned
+
+**Show Server Diagnostics:**
+
+- Displays comprehensive diagnostic information including:
+  - Server process status (running/stopped, PID)
+  - Connection state (connecting, connected, timeout, error)
+  - Pending request count and details
+  - Recent communication events (requests, responses, errors)
+  - Last error message and timestamp
+- Helps identify the root cause of connection issues
+- Useful information to include when reporting bugs
 
 ## Security
 
@@ -635,6 +810,179 @@ This extension enforces strict security boundaries:
 6. **Audit Logging**: Complete operation tracking
 
 ## Troubleshooting
+
+This section covers common issues and their solutions. For connection and timeout issues, see the [Connection & Recovery Commands](#connection--recovery-commands) section.
+
+### Connection & Timeout Issues
+
+#### Server Initialization Timeout
+
+**Problem**: Extension shows "Server initialization timeout" or "Connection timeout - retrying"
+
+**Symptoms**:
+
+- Tree view shows "Connection timeout - retrying (X/3)"
+- Extension eventually shows "Server not running" after retries
+- Server process is actually running (check Task Manager/Activity Monitor)
+
+**Solutions**:
+
+1. **Increase initialization timeout** (recommended for slow systems):
+
+   ```json
+   {
+     "mcp-process.timeout.initialization": 120000 // 2 minutes
+   }
+   ```
+
+2. **Check server logs** in Output panel:
+
+   - Open Output panel (View → Output)
+   - Select "MCP ACS Process Manager" from dropdown
+   - Look for error messages during initialization
+
+3. **Verify server can start manually**:
+
+   ```bash
+   npx -y @ai-capabilities-suite/mcp-process
+   ```
+
+   If this hangs or fails, the server itself has issues.
+
+4. **Use Reconnect command**:
+
+   - Open Command Palette (Ctrl+Shift+P / Cmd+Shift+P)
+   - Run "MCP ACS Process: Reconnect to Server"
+   - Check if reconnection succeeds
+
+5. **Check system resources**:
+   - High CPU/memory usage can slow server startup
+   - Close unnecessary applications
+   - Restart VS Code
+
+**When to increase timeout:**
+
+- First run (server needs to download dependencies)
+- Slow systems (older hardware, limited resources)
+- Remote development (network latency)
+- CI/CD environments (shared resources)
+
+#### Request Timeout
+
+**Problem**: Operations fail with "Request timeout" error
+
+**Symptoms**:
+
+- Starting processes fails with timeout
+- Getting process statistics times out
+- Other operations work but specific ones fail
+
+**Solutions**:
+
+1. **Increase standard request timeout**:
+
+   ```json
+   {
+     "mcp-process.timeout.standardRequest": 60000 // 1 minute
+   }
+   ```
+
+2. **Check if server is overloaded**:
+
+   - Run "MCP ACS Process: Show Server Diagnostics"
+   - Look at pending request count
+   - If many pending requests, server may be overwhelmed
+
+3. **Reduce concurrent operations**:
+
+   - Don't start too many processes at once
+   - Wait for operations to complete before starting new ones
+
+4. **Check process resource limits**:
+   - If monitoring a resource-intensive process, it may slow the server
+   - Increase resource limits or reduce monitoring frequency
+
+#### Automatic Reconnection Failing
+
+**Problem**: Extension keeps retrying but never connects
+
+**Symptoms**:
+
+- Tree view shows "Connection timeout - retrying (3/3)"
+- Eventually shows "Disconnected" or error message
+- Retries don't help
+
+**Solutions**:
+
+1. **Check if server process is actually running**:
+
+   - Run "MCP ACS Process: Show Server Diagnostics"
+   - Look at "Server Process Running" status
+   - If false, server crashed or never started
+
+2. **Restart the server** (not just reconnect):
+
+   - Run "MCP ACS Process: Restart Server"
+   - This kills and restarts the server process
+   - Check Output panel for startup errors
+
+3. **Increase retry count and delay**:
+
+   ```json
+   {
+     "mcp-process.reconnect.maxRetries": 5,
+     "mcp-process.reconnect.retryDelay": 3000
+   }
+   ```
+
+4. **Check for port conflicts**:
+
+   - If using stdio transport, this shouldn't happen
+   - But check Output panel for "address already in use" errors
+
+5. **Verify Node.js installation**:
+   ```bash
+   node --version  # Should be 18.x or higher
+   npm --version
+   ```
+
+#### Server Process Crashes
+
+**Problem**: Server starts but immediately crashes
+
+**Symptoms**:
+
+- "Server process exited with code X" in Output panel
+- Extension shows "Disconnected" immediately after "Connecting"
+- Diagnostics show "Server Process Running: false"
+
+**Solutions**:
+
+1. **Check server logs** in Output panel for error messages
+
+2. **Verify server installation**:
+
+   ```bash
+   npm install -g @ai-capabilities-suite/mcp-process
+   ```
+
+3. **Check for conflicting global packages**:
+
+   ```bash
+   npm list -g @ai-capabilities-suite/mcp-process
+   ```
+
+4. **Try using bundled server** (if available):
+
+   ```json
+   {
+     "mcp-process.server.serverPath": "" // Empty = use bundled
+   }
+   ```
+
+5. **Check Node.js version compatibility**:
+   - Server requires Node.js 18.x or higher
+   - Update Node.js if needed
 
 ### Server Not Starting
 

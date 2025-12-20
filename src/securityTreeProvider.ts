@@ -1,5 +1,9 @@
 import * as vscode from "vscode";
 import { MCPProcessClient } from "./mcpClient";
+import {
+  ConnectionState,
+  ConnectionStatus,
+} from "@ai-capabilities-suite/mcp-client-base";
 
 export class SecurityTreeDataProvider
   implements vscode.TreeDataProvider<SecurityTreeItem>
@@ -10,10 +14,32 @@ export class SecurityTreeDataProvider
   readonly onDidChangeTreeData = this._onDidChangeTreeData.event;
 
   private mcpClient: MCPProcessClient | undefined;
+  private connectionStatus: ConnectionStatus | undefined;
+  private stateChangeDisposable: { dispose: () => void } | undefined;
 
   setMCPClient(client: MCPProcessClient): void {
+    // Dispose previous subscription if exists
+    if (this.stateChangeDisposable) {
+      this.stateChangeDisposable.dispose();
+    }
+
     this.mcpClient = client;
+
+    // Subscribe to connection state changes
+    this.stateChangeDisposable = client.onStateChange((status) => {
+      this.connectionStatus = status;
+      this.refresh();
+    });
+
+    // Get initial connection status
+    this.connectionStatus = client.getConnectionStatus();
     this.refresh();
+  }
+
+  dispose(): void {
+    if (this.stateChangeDisposable) {
+      this.stateChangeDisposable.dispose();
+    }
   }
 
   refresh(): void {
@@ -34,6 +60,59 @@ export class SecurityTreeDataProvider
           "warning"
         ),
       ];
+    }
+
+    // Check connection status and show appropriate message
+    if (this.connectionStatus) {
+      switch (this.connectionStatus.state) {
+        case ConnectionState.CONNECTING:
+          return [
+            new SecurityTreeItem(
+              "Connecting to server...",
+              "Please wait",
+              vscode.TreeItemCollapsibleState.None,
+              "connecting"
+            ),
+          ];
+
+        case ConnectionState.TIMEOUT_RETRYING:
+          const retryCount = this.connectionStatus.retryCount || 0;
+          const maxRetries = 3; // From ReSyncConfig default
+          return [
+            new SecurityTreeItem(
+              `Connection timeout - retrying (${retryCount}/${maxRetries})`,
+              "Attempting to reconnect",
+              vscode.TreeItemCollapsibleState.None,
+              "warning"
+            ),
+          ];
+
+        case ConnectionState.DISCONNECTED:
+          return [
+            new SecurityTreeItem(
+              "Server Not Running",
+              "Start the MCP server to view security boundaries",
+              vscode.TreeItemCollapsibleState.None,
+              "warning"
+            ),
+          ];
+
+        case ConnectionState.ERROR:
+          const errorMsg =
+            this.connectionStatus.lastError?.message || "Unknown error";
+          return [
+            new SecurityTreeItem(
+              "Connection Error",
+              errorMsg,
+              vscode.TreeItemCollapsibleState.None,
+              "error"
+            ),
+          ];
+
+        case ConnectionState.CONNECTED:
+          // Show security information when connected
+          break; // Fall through to normal display logic
+      }
     }
 
     const config = this.mcpClient.getConfig();
@@ -227,6 +306,8 @@ export class SecurityTreeItem extends vscode.TreeItem {
           "warning",
           new vscode.ThemeColor("testing.iconQueued")
         );
+      case "connecting":
+        return new vscode.ThemeIcon("sync~spin");
       default:
         return new vscode.ThemeIcon("info");
     }

@@ -19,6 +19,7 @@ import {
   unregisterExtension,
   setOutputChannel,
 } from "@ai-capabilities-suite/vscode-shared-status-bar";
+import type { MCPClientConfig } from "@ai-capabilities-suite/mcp-client-base";
 
 let mcpClient: MCPProcessClient | undefined;
 let outputChannel: vscode.LogOutputChannel;
@@ -39,6 +40,10 @@ const RESTART_REQUIRED_SETTINGS = [
   "server.serverPath",
   "server.configPath",
   "server.useConfigFile",
+  "timeout.initialization",
+  "timeout.standardRequest",
+  "reconnect.maxRetries",
+  "reconnect.retryDelay",
   "executable.allowedExecutables",
   "executable.blockSetuidExecutables",
   "executable.blockShellInterpreters",
@@ -116,6 +121,58 @@ const IMMEDIATE_SETTINGS = [
   "ui.showSecurityWarnings",
   "ui.confirmDangerousOperations",
 ];
+
+/**
+ * Get timeout and reconnect configuration from VS Code settings
+ */
+function getTimeoutConfig(): Partial<MCPClientConfig> {
+  const config = vscode.workspace.getConfiguration("mcp-process");
+
+  const initTimeout = config.get<number>("timeout.initialization", 60000);
+  const standardTimeout = config.get<number>("timeout.standardRequest", 30000);
+  const maxRetries = config.get<number>("reconnect.maxRetries", 3);
+  const retryDelay = config.get<number>("reconnect.retryDelay", 2000);
+  const logLevel = config.get<"debug" | "info" | "warn" | "error">(
+    "server.logLevel",
+    "info"
+  );
+
+  // Validate configuration
+  if (initTimeout < standardTimeout) {
+    outputChannel.warn(
+      `Invalid timeout configuration: initialization timeout (${initTimeout}ms) is less than standard request timeout (${standardTimeout}ms). Using initialization timeout for both.`
+    );
+  }
+
+  if (initTimeout < 10000) {
+    outputChannel.warn(
+      `Initialization timeout (${initTimeout}ms) is below minimum recommended value of 10000ms. This may cause connection issues.`
+    );
+  }
+
+  if (initTimeout > 300000) {
+    outputChannel.warn(
+      `Initialization timeout (${initTimeout}ms) is above maximum recommended value of 300000ms. This may cause long delays.`
+    );
+  }
+
+  return {
+    timeout: {
+      initializationTimeoutMs: initTimeout,
+      standardRequestTimeoutMs: standardTimeout,
+      toolsListTimeoutMs: initTimeout, // Use initialization timeout for tools/list
+    },
+    reSync: {
+      maxRetries,
+      retryDelayMs: retryDelay,
+      backoffMultiplier: 1.5,
+    },
+    logging: {
+      logLevel,
+      logCommunication: logLevel === "debug",
+    },
+  };
+}
 
 /**
  * Check if a configuration change requires server restart
@@ -219,7 +276,7 @@ async function restartServer(): Promise<void> {
     await new Promise((resolve) => setTimeout(resolve, 500));
 
     // Start new server with updated configuration
-    mcpClient = new MCPProcessClient(outputChannel);
+    mcpClient = new MCPProcessClient(outputChannel, getTimeoutConfig());
 
     // Generate and pass server configuration from VS Code settings
     const serverConfig = settingsManager.generateServerConfig();
@@ -1211,31 +1268,30 @@ export async function activate(context: vscode.ExtensionContext) {
         try {
           progress.report({ message: "Starting server..." });
 
-          mcpClient = new MCPProcessClient(outputChannel);
+          mcpClient = new MCPProcessClient(outputChannel, getTimeoutConfig());
 
           // Generate and pass server configuration from VS Code settings
-          const serverConfig = settingsManager.generateServerConfig();
-          mcpClient.setServerConfig(serverConfig);
+          if (settingsManager) {
+            const serverConfig = settingsManager.generateServerConfig();
+            mcpClient.setServerConfig(serverConfig);
+          }
 
-          // Subscribe to connection state changes
-          const stateSubscription = mcpClient.onStateChange((status) => {
-            outputChannel.appendLine(
-              `Connection state changed: ${status.state} - ${status.message}`
-            );
-
-            // Update progress indicator based on state
-            if (status.state === "connecting") {
-              progress.report({ message: "Connecting to server..." });
-            } else if (status.state === "timeout_retrying") {
-              progress.report({
-                message: `Retrying connection (${status.retryCount || 0}/${
-                  mcpClient?.getReSyncConfig().maxRetries || 3
-                })...`,
-              });
-            }
-          });
-
-          context.subscriptions.push(stateSubscription);
+          // TODO: Subscribe to connection state changes once mcp-client-base is updated
+          // const stateSubscription = mcpClient.onStateChange((status) => {
+          //   outputChannel.appendLine(
+          //     `Connection state changed: ${status.state} - ${status.message}`
+          //   );
+          //   if (status.state === "connecting") {
+          //     progress.report({ message: "Connecting to server..." });
+          //   } else if (status.state === "timeout_retrying") {
+          //     progress.report({
+          //       message: `Retrying connection (${status.retryCount || 0}/${
+          //         mcpClient?.getReSyncConfig().maxRetries || 3
+          //       })...`,
+          //     });
+          //   }
+          // });
+          // context.subscriptions.push(stateSubscription);
 
           progress.report({ message: "Initializing connection..." });
           await mcpClient.start();

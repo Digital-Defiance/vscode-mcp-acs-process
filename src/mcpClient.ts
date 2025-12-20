@@ -3,6 +3,8 @@ import * as path from "path";
 import {
   BaseMCPClient,
   LogOutputChannel,
+  ConnectionStatus,
+  MCPClientConfig,
 } from "@ai-capabilities-suite/mcp-client-base";
 
 export interface ProcessStartParams {
@@ -96,8 +98,11 @@ export class MCPProcessClient extends BaseMCPClient {
   private serverConfig?: SecurityConfig;
   private tempConfigPath?: string;
 
-  constructor(outputChannel: LogOutputChannel) {
-    super("Process", outputChannel);
+  constructor(
+    outputChannel: LogOutputChannel,
+    config?: Partial<MCPClientConfig>
+  ) {
+    super("Process", outputChannel, config);
   }
 
   /**

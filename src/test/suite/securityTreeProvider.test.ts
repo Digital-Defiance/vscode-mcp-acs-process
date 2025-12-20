@@ -170,6 +170,15 @@ suite("Security Tree Provider Test Suite", () => {
           blockShellInterpreters: true,
           blockSetuidExecutables: true,
         }),
+        onStateChange: () => ({
+          dispose: () => {},
+        }),
+        getConnectionStatus: () => ({
+          state: "connected" as any,
+          message: "Connected",
+          serverProcessRunning: true,
+          timestamp: Date.now(),
+        }),
       };
     });
 
@@ -234,9 +243,18 @@ suite("Security Tree Provider Test Suite", () => {
           defaultResourceLimits: {},
           maxConcurrentProcesses: 10,
         }),
+        onStateChange: () => ({
+          dispose: () => {},
+        }),
+        getConnectionStatus: () => ({
+          state: "connected" as any,
+          message: "Connected",
+          serverProcessRunning: true,
+          timestamp: Date.now(),
+        }),
       };
 
-      provider.setMCPClient(emptyClient as MCPProcessClient);
+      provider.setMCPClient(emptyClient as unknown as MCPProcessClient);
 
       const root = await provider.getChildren();
       const allowedExecsItem = root[0];
@@ -251,9 +269,18 @@ suite("Security Tree Provider Test Suite", () => {
         getConfig: () => ({
           allowedExecutables: ["node"],
         }),
+        onStateChange: () => ({
+          dispose: () => {},
+        }),
+        getConnectionStatus: () => ({
+          state: "connected" as any,
+          message: "Connected",
+          serverProcessRunning: true,
+          timestamp: Date.now(),
+        }),
       };
 
-      provider.setMCPClient(minimalClient as MCPProcessClient);
+      provider.setMCPClient(minimalClient as unknown as MCPProcessClient);
 
       const root = await provider.getChildren();
       assert.strictEqual(root.length, 3);
@@ -298,9 +325,18 @@ suite("Security Tree Provider Test Suite", () => {
         getConfig: () => ({
           allowedExecutables: ["node"],
         }),
+        onStateChange: () => ({
+          dispose: () => {},
+        }),
+        getConnectionStatus: () => ({
+          state: "connected" as any,
+          message: "Connected",
+          serverProcessRunning: true,
+          timestamp: Date.now(),
+        }),
       };
 
-      provider.setMCPClient(mockClient as MCPProcessClient);
+      provider.setMCPClient(mockClient as unknown as MCPProcessClient);
       const children = await provider.getChildren();
 
       for (const child of children) {
@@ -316,9 +352,18 @@ suite("Security Tree Provider Test Suite", () => {
         getConfig: () => ({
           allowedExecutables: ["node", "python3"],
         }),
+        onStateChange: () => ({
+          dispose: () => {},
+        }),
+        getConnectionStatus: () => ({
+          state: "connected" as any,
+          message: "Connected",
+          serverProcessRunning: true,
+          timestamp: Date.now(),
+        }),
       };
 
-      provider.setMCPClient(mockClient as MCPProcessClient);
+      provider.setMCPClient(mockClient as unknown as MCPProcessClient);
       const root = await provider.getChildren();
       const allowedExecsItem = root[0];
       const executables = await provider.getChildren(allowedExecsItem);
@@ -336,9 +381,18 @@ suite("Security Tree Provider Test Suite", () => {
         getConfig: () => ({
           allowedExecutables: ["node"],
         }),
+        onStateChange: () => ({
+          dispose: () => {},
+        }),
+        getConnectionStatus: () => ({
+          state: "connected" as any,
+          message: "Connected",
+          serverProcessRunning: true,
+          timestamp: Date.now(),
+        }),
       };
 
-      provider.setMCPClient(mockClient as MCPProcessClient);
+      provider.setMCPClient(mockClient as unknown as MCPProcessClient);
       const root = await provider.getChildren();
       const allowedExecsItem = root[0];
       const executables = await provider.getChildren(allowedExecsItem);

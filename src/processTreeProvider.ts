@@ -1,20 +1,46 @@
 import * as vscode from "vscode";
 import { MCPProcessClient, ProcessInfo } from "./mcpClient";
+import {
+  ConnectionState,
+  ConnectionStatus,
+} from "@ai-capabilities-suite/mcp-client-base";
 
 export class ProcessTreeDataProvider
-  implements vscode.TreeDataProvider<ProcessTreeItem>
+  implements vscode.TreeDataProvider<vscode.TreeItem>
 {
   private _onDidChangeTreeData = new vscode.EventEmitter<
-    ProcessTreeItem | undefined | null | void
+    vscode.TreeItem | undefined | null | void
   >();
   readonly onDidChangeTreeData = this._onDidChangeTreeData.event;
 
   private mcpClient: MCPProcessClient | undefined;
   private processes: ProcessInfo[] = [];
+  private connectionStatus: ConnectionStatus | undefined;
+  private stateChangeDisposable: { dispose: () => void } | undefined;
 
   setMCPClient(client: MCPProcessClient): void {
+    // Dispose previous subscription if exists
+    if (this.stateChangeDisposable) {
+      this.stateChangeDisposable.dispose();
+    }
+
     this.mcpClient = client;
+
+    // Subscribe to connection state changes
+    this.stateChangeDisposable = client.onStateChange((status) => {
+      this.connectionStatus = status;
+      this.refresh();
+    });
+
+    // Get initial connection status
+    this.connectionStatus = client.getConnectionStatus();
     this.refresh();
+  }
+
+  dispose(): void {
+    if (this.stateChangeDisposable) {
+      this.stateChangeDisposable.dispose();
+    }
   }
 
   async refresh(): Promise<void> {
@@ -29,17 +55,63 @@ export class ProcessTreeDataProvider
     this._onDidChangeTreeData.fire();
   }
 
-  getTreeItem(element: ProcessTreeItem): vscode.TreeItem {
+  getTreeItem(element: vscode.TreeItem): vscode.TreeItem {
     return element;
   }
 
-  async getChildren(element?: ProcessTreeItem): Promise<ProcessTreeItem[]> {
+  async getChildren(element?: vscode.TreeItem): Promise<vscode.TreeItem[]> {
     if (!this.mcpClient) {
       return [];
     }
 
     if (!element) {
-      // Root level - show all processes
+      // Check connection status and show appropriate message
+      if (this.connectionStatus) {
+        switch (this.connectionStatus.state) {
+          case ConnectionState.CONNECTING:
+            return [
+              new StatusTreeItem(
+                "Connecting to server...",
+                "Please wait",
+                "sync~spin"
+              ),
+            ];
+
+          case ConnectionState.TIMEOUT_RETRYING:
+            const retryCount = this.connectionStatus.retryCount || 0;
+            const maxRetries = 3; // From ReSyncConfig default
+            return [
+              new StatusTreeItem(
+                `Connection timeout - retrying (${retryCount}/${maxRetries})`,
+                "Attempting to reconnect",
+                "warning"
+              ),
+            ];
+
+          case ConnectionState.DISCONNECTED:
+            return [
+              new StatusTreeItem(
+                "Server Not Running",
+                "Start the MCP server to view processes",
+                "debug-disconnect"
+              ),
+            ];
+
+          case ConnectionState.ERROR:
+            const errorMsg =
+              this.connectionStatus.lastError?.message || "Unknown error";
+            return [new StatusTreeItem("Connection Error", errorMsg, "error")];
+
+          case ConnectionState.CONNECTED:
+            // Show processes when connected
+            return this.processes.map(
+              (p) =>
+                new ProcessTreeItem(p, vscode.TreeItemCollapsibleState.None)
+            );
+        }
+      }
+
+      // Fallback: show processes if we have them
       return this.processes.map(
         (p) => new ProcessTreeItem(p, vscode.TreeItemCollapsibleState.None)
       );
@@ -118,5 +190,17 @@ export class ProcessTreeItem extends vscode.TreeItem {
       default:
         return new vscode.ThemeIcon("question");
     }
+  }
+}
+
+/**
+ * StatusTreeItem - Displays connection status messages in the tree
+ */
+export class StatusTreeItem extends vscode.TreeItem {
+  constructor(label: string, description: string, iconId: string) {
+    super(label, vscode.TreeItemCollapsibleState.None);
+    this.description = description;
+    this.iconPath = new vscode.ThemeIcon(iconId);
+    this.contextValue = "status";
   }
 }

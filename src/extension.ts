@@ -1200,36 +1200,72 @@ export async function activate(context: vscode.ExtensionContext) {
   const isE2ETest = process.env.VSCODE_E2E_TEST === "true";
 
   if (autoStart && (!isTestMode || isLSPTest || isE2ETest)) {
-    try {
-      mcpClient = new MCPProcessClient(outputChannel);
+    // Show progress indicator during initialization
+    await vscode.window.withProgress(
+      {
+        location: vscode.ProgressLocation.Notification,
+        title: "MCP ACS Process Manager",
+        cancellable: false,
+      },
+      async (progress) => {
+        try {
+          progress.report({ message: "Starting server..." });
 
-      // Generate and pass server configuration from VS Code settings
-      const serverConfig = settingsManager.generateServerConfig();
-      mcpClient.setServerConfig(serverConfig);
+          mcpClient = new MCPProcessClient(outputChannel);
 
-      await mcpClient.start();
+          // Generate and pass server configuration from VS Code settings
+          const serverConfig = settingsManager.generateServerConfig();
+          mcpClient.setServerConfig(serverConfig);
 
-      processTreeProvider.setMCPClient(mcpClient);
-      securityTreeProvider.setMCPClient(mcpClient);
-      processContextProvider.setMCPClient(mcpClient);
+          // Subscribe to connection state changes
+          const stateSubscription = mcpClient.onStateChange((status) => {
+            outputChannel.appendLine(
+              `Connection state changed: ${status.state} - ${status.message}`
+            );
 
-      outputChannel.appendLine("MCP ACS Process server started successfully");
+            // Update progress indicator based on state
+            if (status.state === "connecting") {
+              progress.report({ message: "Connecting to server..." });
+            } else if (status.state === "timeout_retrying") {
+              progress.report({
+                message: `Retrying connection (${status.retryCount || 0}/${
+                  mcpClient?.getReSyncConfig().maxRetries || 3
+                })...`,
+              });
+            }
+          });
 
-      // Start auto-refresh
-      startAutoRefresh();
-    } catch (error: any) {
-      outputChannel.appendLine(`Failed to start MCP server: ${error}`);
-      vscode.window
-        .showErrorMessage(
-          "Failed to start MCP ACS Process server. Check output for details.",
-          "Show Output"
-        )
-        .then((selection) => {
-          if (selection === "Show Output") {
-            outputChannel.show();
-          }
-        });
-    }
+          context.subscriptions.push(stateSubscription);
+
+          progress.report({ message: "Initializing connection..." });
+          await mcpClient.start();
+
+          processTreeProvider.setMCPClient(mcpClient);
+          securityTreeProvider.setMCPClient(mcpClient);
+          processContextProvider.setMCPClient(mcpClient);
+
+          progress.report({ message: "Server ready" });
+          outputChannel.appendLine(
+            "MCP ACS Process server started successfully"
+          );
+
+          // Start auto-refresh
+          startAutoRefresh();
+        } catch (error: any) {
+          outputChannel.appendLine(`Failed to start MCP server: ${error}`);
+          vscode.window
+            .showErrorMessage(
+              "Failed to start MCP ACS Process server. Check output for details.",
+              "Show Output"
+            )
+            .then((selection) => {
+              if (selection === "Show Output") {
+                outputChannel.show();
+              }
+            });
+        }
+      }
+    );
   }
 
   // Register commands
@@ -1356,6 +1392,137 @@ export async function activate(context: vscode.ExtensionContext) {
     )
   );
 
+  // Diagnostic commands
+  context.subscriptions.push(
+    vscode.commands.registerCommand(
+      "mcp-process.reconnectToServer",
+      async () => {
+        if (!mcpClient) {
+          vscode.window.showErrorMessage("MCP ACS Process server not running");
+          return;
+        }
+
+        try {
+          outputChannel.appendLine("Reconnecting to MCP ACS Process server...");
+          const success = await mcpClient.reconnect();
+
+          if (success) {
+            vscode.window.showInformationMessage(
+              "Reconnected to MCP ACS Process server"
+            );
+            outputChannel.appendLine("Reconnection successful");
+            await refreshProcessList();
+          } else {
+            vscode.window.showErrorMessage(
+              "Failed to reconnect to MCP ACS Process server"
+            );
+            outputChannel.appendLine("Reconnection failed");
+          }
+        } catch (error: any) {
+          vscode.window.showErrorMessage(
+            `Reconnection error: ${error.message || error}`
+          );
+          outputChannel.appendLine(
+            `Reconnection error: ${error.message || error}`
+          );
+        }
+      }
+    )
+  );
+
+  context.subscriptions.push(
+    vscode.commands.registerCommand("mcp-process.showDiagnostics", async () => {
+      if (!mcpClient) {
+        vscode.window.showErrorMessage("MCP ACS Process server not running");
+        return;
+      }
+
+      try {
+        const diagnostics = mcpClient.getDiagnostics();
+
+        // Show diagnostics in output channel
+        outputChannel.clear();
+        outputChannel.show(true);
+        outputChannel.appendLine("=".repeat(80));
+        outputChannel.appendLine("MCP ACS Process Diagnostics");
+        outputChannel.appendLine("=".repeat(80));
+        outputChannel.appendLine("");
+        outputChannel.appendLine(`Extension: ${diagnostics.extensionName}`);
+        outputChannel.appendLine(
+          `Connection State: ${diagnostics.connectionState}`
+        );
+        outputChannel.appendLine(
+          `Process Running: ${diagnostics.processRunning ? "Yes" : "No"}`
+        );
+        if (diagnostics.processId) {
+          outputChannel.appendLine(`Process ID: ${diagnostics.processId}`);
+        }
+        outputChannel.appendLine("");
+        outputChannel.appendLine(
+          `Pending Requests: ${diagnostics.pendingRequestCount}`
+        );
+
+        if (diagnostics.pendingRequests.length > 0) {
+          outputChannel.appendLine("");
+          outputChannel.appendLine("Active Requests:");
+          for (const req of diagnostics.pendingRequests) {
+            outputChannel.appendLine(
+              `  - [${req.id}] ${req.method} (${req.elapsedMs}ms elapsed)`
+            );
+          }
+        }
+
+        if (diagnostics.lastError) {
+          outputChannel.appendLine("");
+          outputChannel.appendLine(
+            `Last Error: ${diagnostics.lastError.message}`
+          );
+          outputChannel.appendLine(
+            `  Timestamp: ${new Date(
+              diagnostics.lastError.timestamp
+            ).toISOString()}`
+          );
+        }
+
+        if (diagnostics.recentCommunication.length > 0) {
+          outputChannel.appendLine("");
+          outputChannel.appendLine("Recent Communication (last 10):");
+          const recent = diagnostics.recentCommunication.slice(-10);
+          for (const comm of recent) {
+            const timestamp = new Date(comm.timestamp).toISOString();
+            const status = comm.success ? "✓" : "✗";
+            const method = comm.method || "notification";
+            outputChannel.appendLine(
+              `  ${status} [${timestamp}] ${comm.type}: ${method}`
+            );
+          }
+        }
+
+        if (diagnostics.stateHistory.length > 0) {
+          outputChannel.appendLine("");
+          outputChannel.appendLine("State History (last 10):");
+          const history = diagnostics.stateHistory.slice(-10);
+          for (const state of history) {
+            const timestamp = new Date(state.timestamp).toISOString();
+            outputChannel.appendLine(
+              `  [${timestamp}] ${state.state}: ${state.message}`
+            );
+          }
+        }
+
+        outputChannel.appendLine("");
+        outputChannel.appendLine("=".repeat(80));
+      } catch (error: any) {
+        vscode.window.showErrorMessage(
+          `Failed to get diagnostics: ${error.message || error}`
+        );
+        outputChannel.appendLine(
+          `Failed to get diagnostics: ${error.message || error}`
+        );
+      }
+    })
+  );
+
   outputChannel.appendLine("MCP ACS Process Manager extension activated");
 
   // Register with shared status bar
@@ -1380,9 +1547,19 @@ export async function activate(context: vscode.ExtensionContext) {
         description: "View security configuration",
       },
       {
+        label: "Reconnect to Server",
+        command: "mcp-process.reconnectToServer",
+        description: "Reconnect to MCP server",
+      },
+      {
         label: "Restart Server",
         command: "mcp-process.restartServer",
         description: "Restart MCP server",
+      },
+      {
+        label: "Show Diagnostics",
+        command: "mcp-process.showDiagnostics",
+        description: "Show server diagnostics",
       },
     ],
   });

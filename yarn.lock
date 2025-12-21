@@ -5,18 +5,18 @@ __metadata:
   version: 8
   cacheKey: 10c0
 
-"@ai-capabilities-suite/mcp-client-base@file:../mcp-client-base::locator=mcp-acs-process%40workspace%3A.":
+"@ai-capabilities-suite/mcp-client-base@npm:1.0.0":
   version: 1.0.0
-  resolution: "@ai-capabilities-suite/mcp-client-base@file:../mcp-client-base#../mcp-client-base::hash=89ab73&locator=mcp-acs-process%40workspace%3A."
+  resolution: "@ai-capabilities-suite/mcp-client-base@npm:1.0.0"
   peerDependencies:
     vscode: ^1.85.0
-  checksum: 10c0/7f6768abf59f4c25fed27d7e8e5d36c38980547c0e2a8b20b3071e2b233a0bdfc90a89c801d3609bf84c344827481946d6a22604e69f634e2dabc64361d3ab58
+  checksum: 10c0/a045db3ec3e505f3a7f19087f77ac9c254962809631be33dfb996a60032f4a9181322fe89862c2feba7055819c5afc35060da86012dcb55656957357a61386ea
   languageName: node
   linkType: hard
 
-"@ai-capabilities-suite/mcp-process@npm:^1.5.9":
-  version: 1.5.9
-  resolution: "@ai-capabilities-suite/mcp-process@npm:1.5.9"
+"@ai-capabilities-suite/mcp-process@npm:^1.5.10":
+  version: 1.5.10
+  resolution: "@ai-capabilities-suite/mcp-process@npm:1.5.10"
   dependencies:
     "@modelcontextprotocol/sdk": "npm:^1.23.0"
     minimatch: "npm:^10.0.1"
@@ -26,7 +26,7 @@ __metadata:
     zod: "npm:^4.1.13"
   bin:
     mcp-process: dist/cli.js
-  checksum: 10c0/885c70c778d69481f948dccac493531175dd131f429acfc1dc45c6c076b751b546f20817d080b8597ae18e353e4a13cfaa9aa3860aae85dea2cf23d4c68658cd
+  checksum: 10c0/9c12e54e695c8e0682bc9008cf9761f16408bc284ef32c33e5df723e7485486e88f90fb4a0789de68a1a2437ac82a6f77c04dd4e42f3063ee53a69a0a4cdf720
   languageName: node
   linkType: hard
 
@@ -2923,8 +2923,8 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "mcp-acs-process@workspace:."
   dependencies:
-    "@ai-capabilities-suite/mcp-client-base": "file:../mcp-client-base"
-    "@ai-capabilities-suite/mcp-process": "npm:^1.5.9"
+    "@ai-capabilities-suite/mcp-client-base": "npm:1.0.0"
+    "@ai-capabilities-suite/mcp-process": "npm:^1.5.10"
     "@ai-capabilities-suite/vscode-shared-status-bar": "npm:^1.0.21"
     "@modelcontextprotocol/sdk": "npm:^0.5.0"
     "@types/glob": "npm:^9.0.0"

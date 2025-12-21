@@ -165,10 +165,12 @@ export class MCPProcessClient extends BaseMCPClient {
         // Use npx to run the server
         // On Windows, use npx.cmd. However, in WSL, process.platform may be 'win32'
         // but we should use 'npx' not 'npx.cmd'. Check for WSL environment.
-        const isWsl = process.env.WSL_DISTRO_NAME !== undefined || 
-                      process.env.WSL_INTEROP !== undefined ||
-                      (process.platform === "linux" && process.env.WSLENV !== undefined);
-        serverCommand = (process.platform === "win32" && !isWsl) ? "npx.cmd" : "npx";
+        const isWsl =
+          process.env.WSL_DISTRO_NAME !== undefined ||
+          process.env.WSL_INTEROP !== undefined ||
+          (process.platform === "linux" && process.env.WSLENV !== undefined);
+        serverCommand =
+          process.platform === "win32" && !isWsl ? "npx.cmd" : "npx";
         args = ["-y", "@ai-capabilities-suite/mcp-process"];
       }
     }

@@ -128,7 +128,7 @@ const IMMEDIATE_SETTINGS = [
 function getTimeoutConfig(): Partial<MCPClientConfig> {
   const config = vscode.workspace.getConfiguration("mcp-process");
 
-  const initTimeout = config.get<number>("timeout.initialization", 60000);
+  const initTimeout = config.get<number>("timeout.initialization", 120000);
   const standardTimeout = config.get<number>("timeout.standardRequest", 30000);
   const maxRetries = config.get<number>("reconnect.maxRetries", 3);
   const retryDelay = config.get<number>("reconnect.retryDelay", 2000);

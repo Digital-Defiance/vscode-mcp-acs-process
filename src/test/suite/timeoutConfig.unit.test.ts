@@ -120,7 +120,7 @@ suite("Timeout Configuration Unit Tests", () => {
       );
 
       // Verify defaults are used when values are undefined
-      assert.strictEqual(initTimeout, 60000);
+      assert.strictEqual(initTimeout, 120000);
       assert.strictEqual(standardTimeout, 30000);
     });
 
@@ -141,7 +141,7 @@ suite("Timeout Configuration Unit Tests", () => {
       );
 
       // Verify defaults are used when values are null
-      assert.strictEqual(initTimeout, 60000);
+      assert.strictEqual(initTimeout, 120000);
       assert.strictEqual(standardTimeout, 30000);
     });
 
@@ -248,7 +248,7 @@ suite("Timeout Configuration Unit Tests", () => {
         "server.logLevel": "info",
       });
       assert.strictEqual(
-        minConfig.get<number>("timeout.initialization", 60000),
+        minConfig.get<number>("timeout.initialization", 120000),
         10000
       );
 
@@ -258,7 +258,7 @@ suite("Timeout Configuration Unit Tests", () => {
         "server.logLevel": "info",
       });
       assert.strictEqual(
-        maxConfig.get<number>("timeout.initialization", 60000),
+        maxConfig.get<number>("timeout.initialization", 120000),
         300000
       );
     });

@@ -138,7 +138,7 @@ suite("Timeout Configuration Property Tests", () => {
     });
 
     // Simulate the getTimeoutConfig function with defaults
-    const initTimeout = mockConfig.get<number>("timeout.initialization", 60000);
+    const initTimeout = mockConfig.get<number>("timeout.initialization", 120000);
     const standardTimeout = mockConfig.get<number>(
       "timeout.standardRequest",
       30000
